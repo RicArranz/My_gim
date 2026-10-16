@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>My Gim</title>
+<meta name="description" content="Registra tus entrenamientos y mira tu progreso en el gimnasio.">
+<meta name="theme-color" content="#f4f3f0">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="My Gim">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="css/styles.css">
+<script>
+// Aplica el tema guardado antes de pintar (evita el parpadeo).
+try{var p=JSON.parse(localStorage.getItem('mg_prefs')||'{}'),r=document.documentElement,
+dark=p.mode==='dark'||((!p.mode||p.mode==='auto')&&matchMedia('(prefers-color-scheme: dark)').matches);
+r.dataset.theme=dark?'dark':'light';if(p.accent)r.dataset.accent=p.accent;}catch(e){}
+</script>
+</head>
+<body>
+<div id="splash"><img src="icons/logo.png" class="logo-img" alt="My Gim"><div class="spin"></div></div>
+<div id="app"></div>
+<div id="overlays"></div>
+<script src="js/qrcode.js"></script>
+<script type="module" src="js/app.js"></script>
+<script>
+// Red de seguridad: si tras 10 s sigue la pantalla de carga, ofrecer reintentar o limpiar la copia guardada.
+setTimeout(function(){var s=document.getElementById('splash');if(!s||s.classList.contains('out'))return;
+var d=document.createElement('div');d.style.cssText='text-align:center;font:15px system-ui,sans-serif;color:#6f6d68;padding:0 24px';
+d.innerHTML='<p>Está tardando más de lo normal…</p><button id="mgr" style="padding:12px 20px;border-radius:12px;border:0;background:#2b2b29;color:#fff;font-size:16px">Reintentar</button>';
+s.appendChild(d);document.getElementById('mgr').onclick=function(){
+(navigator.serviceWorker?navigator.serviceWorker.getRegistrations():Promise.resolve([])).then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))})
+.then(function(){return window.caches?caches.keys().then(function(k){return Promise.all(k.map(function(x){return caches.delete(x)}))}):0}).finally(function(){location.reload()})};},10000);
+</script>
+</body>
+</html>

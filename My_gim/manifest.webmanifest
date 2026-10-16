@@ -1,0 +1,17 @@
+{
+  "name": "My Gim",
+  "short_name": "My Gim",
+  "description": "Registra tus entrenamientos y mira tu progreso.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f3f0",
+  "theme_color": "#f4f3f0",
+  "lang": "es",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

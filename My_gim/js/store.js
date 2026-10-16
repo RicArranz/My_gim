@@ -1,0 +1,115 @@
+// Capa de datos: API propia en Vercel (/api, Redis) si está configurada; si no, modo local (localStorage).
+export let isRemote = false;
+const J = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+const W = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+export const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id' + Date.now() + Math.random().toString(16).slice(2));
+
+async function sha(s) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('mygim:' + s));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+const shape = u => ({ id: u.id, email: u.email, name: u.name || '', surname: u.surname || '', prefs: u.prefs || {}, avatar: u.avatar || '' });
+
+/* ---------- API remota ---------- */
+async function api(action, body, auth = true) {
+  const headers = { 'Content-Type': 'application/json' };
+  const tk = localStorage.getItem('mg_token'); if (auth && tk) headers.Authorization = 'Bearer ' + tk;
+  const ms = action === 'ping' ? 5000 : 15000, ctl = new AbortController();
+  let timer;
+  const r = await Promise.race([ // el temporizador manda aunque el navegador no llegue a abortar la petición
+    fetch('/api/' + action, { method: 'POST', headers, body: JSON.stringify(body || {}), signal: ctl.signal }),
+    new Promise((_, ko) => { timer = setTimeout(() => { ctl.abort(); ko(new TypeError('timeout')); }, ms); })
+  ]).finally(() => clearTimeout(timer));
+  let j = {}; try { j = await r.json(); } catch { /* respuesta no JSON */ }
+  if (!r.ok) throw Object.assign(new Error(j.error || 'server'), { status: r.status });
+  return j;
+}
+const startSession = r => { localStorage.setItem('mg_token', r.token); W('mg_user_cache', r.user); };
+
+let recoveryCb = null, resetToken = null;
+export const onRecovery = cb => { recoveryCb = cb; if (resetToken) cb(); };
+
+export async function init() {
+  try {
+    isRemote = (await api('ping', {}, false)).configured === true;
+    localStorage.setItem('mg_remote', isRemote ? '1' : '0');
+  } catch (e) {
+    // Respuesta HTTP de error (p. ej. servidor sin API) = no hay backend. Sin red o tiempo agotado = no sabemos:
+    // usar lo último que supimos; si nunca se supo, asumir backend salvo en localhost (así no se crea una cuenta «local» por error).
+    const known = localStorage.getItem('mg_remote');
+    isRemote = e.status ? false : (known ? known === '1' : !/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && location.protocol.startsWith('http'));
+  }
+  const m = location.hash.match(/^#\/reset\/([\w-]+)/);
+  if (m) { resetToken = m[1]; history.replaceState(null, '', location.pathname); }
+}
+
+/* ---------- Auth ---------- */
+export async function getUser() {
+  if (isRemote) {
+    if (!localStorage.getItem('mg_token')) return null;
+    try { const { user } = await api('me'); W('mg_user_cache', user); return user; }
+    catch (e) {
+      if (e.status === 401) { localStorage.removeItem('mg_token'); return null; }
+      return J('mg_user_cache', null); // sin conexión: usar la última copia
+    }
+  }
+  const id = localStorage.getItem('mg_local_session');
+  const u = id && J('mg_local_users', {})[id];
+  return u ? shape({ ...u, ...u.user_metadata }) : null;
+}
+
+export async function signUp({ email, password, name, surname }) {
+  email = email.trim().toLowerCase();
+  if (isRemote) { startSession(await api('signup', { email, password, name, surname }, false)); return { needsConfirm: false }; }
+  const users = J('mg_local_users', {});
+  if (Object.values(users).some(u => u.email === email)) throw new Error('exists');
+  const id = uid();
+  users[id] = { id, email, user_metadata: { name, surname }, hash: await sha(password), avatar: '' };
+  W('mg_local_users', users); localStorage.setItem('mg_local_session', id);
+  return { needsConfirm: false };
+}
+export async function signIn(email, password) {
+  email = email.trim().toLowerCase();
+  if (isRemote) { startSession(await api('login', { email, password }, false)); return; }
+  const u = Object.values(J('mg_local_users', {})).find(x => x.email === email);
+  if (!u || u.hash !== await sha(password)) throw new Error('creds');
+  localStorage.setItem('mg_local_session', u.id);
+}
+export async function signOut() {
+  localStorage.removeItem('mg_token'); localStorage.removeItem('mg_local_session'); localStorage.removeItem('mg_user_cache');
+}
+export async function resetPassword(email) {
+  if (!isRemote) throw new Error('local');
+  await api('forgot', { email }, false);
+}
+export async function updatePassword(password) {
+  if (isRemote) {
+    if (resetToken) { startSession(await api('reset', { token: resetToken, password }, false)); resetToken = null; return; }
+    await api('change-password', { password }); return;
+  }
+  const users = J('mg_local_users', {}); const id = localStorage.getItem('mg_local_session');
+  users[id].hash = await sha(password); W('mg_local_users', users);
+}
+export async function updateProfile(user, patch) {
+  // patch: name, surname, email, avatar, prefs
+  if (isRemote) { const { user: u } = await api('update-profile', patch); W('mg_user_cache', u); Object.assign(user, u); return; }
+  const users = J('mg_local_users', {}); const u = users[user.id];
+  u.user_metadata = { ...u.user_metadata, name: patch.name ?? user.name, surname: patch.surname ?? user.surname, prefs: patch.prefs ?? user.prefs };
+  if (patch.email) u.email = patch.email.trim().toLowerCase();
+  if ('avatar' in patch) u.avatar = patch.avatar;
+  W('mg_local_users', users);
+}
+
+/* ---------- Datos ---------- */
+export async function fetchAll(userId) {
+  if (!isRemote) return J('mg_local_data_' + userId, []);
+  const { days } = await api('days'); const rows = [];
+  for (const day of Object.keys(days).sort()) days[day].forEach((i, n) => rows.push({ id: i.id, day, position: n, name: i.name, sets: i.sets, note: i.note || '' }));
+  return rows;
+}
+export async function saveDay(userId, day, items) {
+  if (isRemote) { await api('save-day', { day, items: items.map(i => ({ id: i.id, name: i.name, sets: i.sets, note: i.note || '' })) }); return; }
+  const all = J('mg_local_data_' + userId, []).filter(r => r.day !== day);
+  items.forEach((i, n) => all.push({ id: i.id, day, position: n, name: i.name, sets: i.sets, note: i.note || '' }));
+  W('mg_local_data_' + userId, all);
+}
