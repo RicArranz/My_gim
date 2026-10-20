@@ -70,6 +70,13 @@ const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLO ') + m); if (!c) proces
   await page.selectOption('#lang', 'es'); await page.waitForTimeout(400);
   // cambio de nombre
   await page.fill('#pn', 'Marta2'); await page.click('#psave'); await page.screenshot({ path: OUT + '/dbg.png', fullPage: true }); await page.waitForTimeout(1000); console.log(await page.inputValue('#pn'), 'pm=', await page.locator('#pm').innerText()); ok((await page.locator('#pm').innerText()).includes('Guardado'), 'perfil guardado');
+  // foto de perfil: galería → «Sin foto»
+  ok(await page.locator('.photobtns .btn').count() === 3 && (await page.locator('.photobtns').innerText()).includes('Sin foto'), 'tres botones de foto: Galería, Cámara y Sin foto');
+  ok(await page.locator('#rp.sel').count() === 1 && await page.locator('.avatar.big img').count() === 0, '«Sin foto» activo por defecto (iniciales)');
+  await page.setInputFiles('#pg', require('path').join(__dirname, '../icons/icon-192.png')); await page.waitForSelector('.avatar.big img');
+  ok(await page.locator('#rp.sel').count() === 0, 'con foto: «Sin foto» deja de estar marcado');
+  await page.click('#rp'); await page.waitForSelector('#rp.sel'); ok(await page.locator('.avatar.big img').count() === 0, '«Sin foto» quita la foto');
+  await page.reload(); await page.waitForSelector('#rp.sel'); ok(true, '«Sin foto» se mantiene al recargar');
   // logout → bienvenida
   await page.click('#burger'); await page.click('#lo'); await page.waitForSelector('#go');
   ok((await page.locator('.auth h1').innerText()).includes('Marta2'), 'pantalla «Bienvenid@ nombre»');

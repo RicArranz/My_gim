@@ -153,3 +153,8 @@ svg.chart .bar.sel{opacity:1}
 .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:.92rem;z-index:80;max-width:90vw;box-shadow:var(--shadow)}
 @media(min-width:760px){main{padding-top:24px}.overlay{align-items:center}.sheet{border-radius:20px}}
 .daynav .date{text-transform:capitalize}
+
+.photobtns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.photobtns .btn{padding:10px 6px;font-size:.9rem}
+.btn.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);font-weight:700}
+.msg.stack{display:flex}

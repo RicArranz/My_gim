@@ -5,6 +5,7 @@ const REDIS_URL = () => process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS
 const REDIS_TOKEN = () => process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const SECRET = () => process.env.AUTH_SECRET;
 const configured = () => !!(REDIS_URL() && REDIS_TOKEN() && SECRET());
+const missingEnv = () => [!REDIS_URL() && 'KV_REST_API_URL', !REDIS_TOKEN() && 'KV_REST_API_TOKEN', !SECRET() && 'AUTH_SECRET'].filter(Boolean); // solo nombres, nunca valores
 
 async function redis(...cmd) {
   const r = await fetch(REDIS_URL(), { method: 'POST', headers: { Authorization: 'Bearer ' + REDIS_TOKEN() }, body: JSON.stringify(cmd) });
@@ -54,4 +55,4 @@ async function sendMail(to, subject, html) {
   if (!r.ok) throw Object.assign(new Error('mail'), { status: 502 });
 }
 
-module.exports = { redis, configured, makeToken, readToken, hashPw, checkPw, normEmail, validEmail, clip, getUserById, getUserByEmail, saveUser, publicUser, sendMail };
+module.exports = { redis, configured, missingEnv, makeToken, readToken, hashPw, checkPw, normEmail, validEmail, clip, getUserById, getUserByEmail, saveUser, publicUser, sendMail };

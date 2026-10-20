@@ -1,5 +1,6 @@
 // Capa de datos: API propia en Vercel (/api, Redis) si está configurada; si no, modo local (localStorage).
 export let isRemote = false;
+export let issue = null; // fallo del servidor en un dominio real: {kind:'unconfigured', missing:[...]} | {kind:'http', status} (nunca se cae en silencio a modo local)
 const J = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 const W = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 export const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id' + Date.now() + Math.random().toString(16).slice(2));
@@ -14,7 +15,7 @@ const shape = u => ({ id: u.id, email: u.email, name: u.name || '', surname: u.s
 async function api(action, body, auth = true) {
   const headers = { 'Content-Type': 'application/json' };
   const tk = localStorage.getItem('mg_token'); if (auth && tk) headers.Authorization = 'Bearer ' + tk;
-  const ms = action === 'ping' ? 5000 : 15000, ctl = new AbortController();
+  const ms = { ping: 5000, me: 8000, 'import-days': 40000 }[action] || 15000, ctl = new AbortController();
   let timer;
   const r = await Promise.race([ // el temporizador manda aunque el navegador no llegue a abortar la petición
     fetch('/api/' + action, { method: 'POST', headers, body: JSON.stringify(body || {}), signal: ctl.signal }),
@@ -29,18 +30,36 @@ const startSession = r => { localStorage.setItem('mg_token', r.token); W('mg_use
 let recoveryCb = null, resetToken = null;
 export const onRecovery = cb => { recoveryCb = cb; if (resetToken) cb(); };
 
+const isLocalHost = () => /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.protocol === 'file:';
+
 export async function init() {
+  issue = null;
   try {
-    isRemote = (await api('ping', {}, false)).configured === true;
+    const p = await api('ping', {}, false);
+    isRemote = p.configured === true;
     localStorage.setItem('mg_remote', isRemote ? '1' : '0');
+    if (!isRemote && !isLocalHost()) issue = { kind: 'unconfigured', missing: p.missing || [] };
   } catch (e) {
-    // Respuesta HTTP de error (p. ej. servidor sin API) = no hay backend. Sin red o tiempo agotado = no sabemos:
-    // usar lo último que supimos; si nunca se supo, asumir backend salvo en localhost (así no se crea una cuenta «local» por error).
-    const known = localStorage.getItem('mg_remote');
-    isRemote = e.status ? false : (known ? known === '1' : !/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && location.protocol.startsWith('http'));
+    if (e.status) {
+      // El servidor respondió con un error. En localhost = sitio estático sin API (modo local); en un dominio real es un fallo que hay que mostrar.
+      isRemote = false;
+      if (!isLocalHost()) issue = { kind: 'http', status: e.status };
+    } else {
+      // Sin red o tiempo agotado: usar lo último que se supo; si nunca se supo, asumir que hay servidor (salvo en localhost).
+      const known = localStorage.getItem('mg_remote');
+      isRemote = known ? known === '1' : !isLocalHost();
+    }
   }
   const m = location.hash.match(/^#\/reset\/([\w-]+)/);
   if (m) { resetToken = m[1]; history.replaceState(null, '', location.pathname); }
+}
+
+// Sesión guardada de un uso anterior: permite abrir la app al instante y comprobarla en segundo plano.
+export function cachedSession() {
+  if (localStorage.getItem('mg_remote') !== '1' || !localStorage.getItem('mg_token')) return null;
+  const u = J('mg_user_cache', null);
+  if (!u || !u.id) return null;
+  isRemote = true; return u;
 }
 
 /* ---------- Auth ---------- */
@@ -106,6 +125,13 @@ export async function fetchAll(userId) {
   const { days } = await api('days'); const rows = [];
   for (const day of Object.keys(days).sort()) days[day].forEach((i, n) => rows.push({ id: i.id, day, position: n, name: i.name, sets: i.sets, note: i.note || '' }));
   return rows;
+}
+export async function importDays(userId, days) {
+  if (isRemote) return api('import-days', { days });
+  let all = J('mg_local_data_' + userId, []); const keys = Object.keys(days);
+  all = all.filter(r => !keys.includes(r.day)); let exercises = 0;
+  for (const day of keys) days[day].forEach((i, n) => { exercises++; all.push({ id: uid(), day, position: n, name: i.name, sets: i.sets, note: i.note || '' }); });
+  W('mg_local_data_' + userId, all); return { ok: true, days: keys.length, exercises };
 }
 export async function saveDay(userId, day, items) {
   if (isRemote) { await api('save-day', { day, items: items.map(i => ({ id: i.id, name: i.name, sets: i.sets, note: i.note || '' })) }); return; }

@@ -1,6 +1,8 @@
 import { t, setLang, getLang, LANGS, monthNames, weekdayLetters } from './i18n.js';
 import * as store from './store.js';
 import { stats } from './stats.js';
+import * as io from './io.js';
+import { buildPDF } from './pdf.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -15,13 +17,14 @@ const ICON = {
   out: '<svg viewBox="0 0 24 24"><path d="M9 21H5V3h4M16 17l5-5-5-5M21 12H9"/></svg>',
   prev: '<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
   next: '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
+  up: '<svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>',
   qr: '<svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v6h-4M14 18v2"/></svg>'
 };
 
 /* ---------- Estado ---------- */
 const S = {
   user: null, db: [], dirty: {}, date: todayISO(), form: null,
-  prefs: J('mg_prefs', {}), progress: { tab: 'day', date: todayISO(), exKey: '', metric: 'max' }, authView: null
+  prefs: J('mg_prefs', {}), progress: { tab: 'day', date: todayISO(), exKey: '', metric: 'max' }, authView: null, loadErr: false
 };
 let deferredPrompt = null, booted = false;
 
@@ -67,9 +70,23 @@ function allItems() {
   return out;
 }
 function setDay(day, items) { S.dirty[day] = items; persistDirty(); }
+// Carga los datos del servidor. Si falla, usa la copia del dispositivo y lo avisa (S.loadErr) en vez de mostrar «cero entrenos» sin explicación.
 async function loadData() {
   S.dirty = J(kDirty(), {});
-  try { S.db = await store.fetchAll(S.user.id); W(kCache(), S.db); } catch { S.db = J(kCache(), []); }
+  try { S.db = await store.fetchAll(S.user.id); W(kCache(), S.db); S.loadErr = false; }
+  catch (e) {
+    S.db = J(kCache(), []); S.loadErr = true;
+    if (e && e.status === 401) await expireSession();
+  }
+}
+async function expireSession() {
+  if (!S.user) return;
+  await store.signOut(); S.user = null; S.authView = 'login'; renderAuth(); toast(t('sessionExpired'));
+}
+const loadBanner = () => (S.loadErr && store.isRemote ? `<div class="msg err stack" style="gap:8px"><span>${t('loadErr')}</span><button class="btn ghost" id="retry">${t('retry')}</button></div>` : '');
+function bindRetry() {
+  const r = $('#retry'); if (!r) return;
+  r.onclick = async () => { r.disabled = true; r.textContent = t('loading'); await loadData(); if (S.user) route(true); };
 }
 
 /* ---------- Toast / modales ---------- */
@@ -124,13 +141,17 @@ async function boot() {
     });
   }
   const minSplash = new Promise(r => setTimeout(r, 300));
-  let user = null;
+  let user = null, fast = false;
   try {
-    try { await store.init(); } catch { /* sin red: modo degradado */ }
-    store.onRecovery(() => { S.authView = 'recovery'; });
-    try { user = await store.getUser(); } catch { /* ignore */ }
+    const cached = /^#\/reset\//.test(location.hash) ? null : store.cachedSession();
+    if (cached) { user = cached; fast = true; }            // vuelta de un usuario conocido: abrir al instante y comprobar después
+    else {
+      try { await store.init(); } catch { /* sin red: modo degradado */ }
+      store.onRecovery(() => { S.authView = 'recovery'; });
+      try { user = await store.getUser(); } catch { /* ignore */ }
+    }
     await minSplash;
-    if (user && S.authView !== 'recovery') await enter(user); else renderAuth();
+    if (user && S.authView !== 'recovery') await enter(user, { fast }); else renderAuth();
   } catch (err) {
     console.error(err);
     try { S.user = null; renderAuth(); } catch { /* nada más que hacer */ }
@@ -142,19 +163,38 @@ async function boot() {
   if (S.user) { if (!offerResume()) maybeAskInstall(); } else maybeAskInstall();
 }
 
-async function enter(user) {
+async function enter(user, { fast = false } = {}) {
   S.user = user;
   if (user.prefs && Object.keys(user.prefs).length) S.prefs = { ...S.prefs, ...user.prefs };
   applyPrefs();
   localStorage.setItem('mg_lastuser', JSON.stringify({ email: user.email, name: user.name }));
-  await loadData();
+  if (fast) { S.dirty = J(kDirty(), {}); S.db = J(kCache(), []); S.loadErr = false; }
+  else { await loadData(); if (!S.user) return; }
   S.date = todayISO(); S.form = null;
   renderShell(); route();
+  if (fast) refresh();
+}
+
+// Segundo plano tras abrir con la copia guardada: valida la sesión y trae los datos al día.
+async function refresh() {
+  const [u] = await Promise.all([store.getUser().catch(() => null), loadData()]);   // sesión y datos a la vez
+  if (!S.user) return;
+  if (!u) { if (!localStorage.getItem('mg_token')) await expireSession(); return; }
+  Object.assign(S.user, u);
+  if (!S.form && !document.querySelector('.overlay')) route(true); else renderMenu();
 }
 
 /* ---------- Auth ---------- */
 function renderAuth() {
   const last = J('mg_lastuser', null);
+  if (store.issue) {   // el servidor no está listo: decirlo claro (antes caía a «modo local» y parecía que se perdían los datos)
+    const i = store.issue;
+    const msg = i.kind === 'unconfigured' ? t('unconfigured', { vars: (i.missing.length ? i.missing : ['KV_REST_API_URL', 'KV_REST_API_TOKEN', 'AUTH_SECRET']).join(', ') }) : t('serverHttp', { status: i.status });
+    $('#app').innerHTML = `<div class="auth"><img class="logo-img" src="icons/logo.png" alt="My Gim"><h1>${t('serverDown')}</h1>
+      <div class="msg err">${esc(msg)}</div><button class="btn block" id="retrysrv">${t('retry')}</button></div>`;
+    $('#retrysrv').onclick = async e => { e.target.disabled = true; e.target.textContent = t('loading'); try { await store.init(); } catch { /* */ } renderAuth(); };
+    return;
+  }
   const v = S.authView || (last ? 'welcome' : 'login');
   S.authView = v;
   $('#app').innerHTML = `<div class="auth"><img class="logo-img" src="icons/logo.png" alt="My Gim">${authBody(v, last)}
@@ -239,7 +279,7 @@ function renderMenu() {
   const d = $('#drawer'); if (!d || !S.user) return;
   const h = location.hash || '#/'; const on = p => (h === p || (p === '#/' && h === '')) ? ' class="on"' : '';
   d.innerHTML = `<div class="who">${avatarHTML(S.user)}<div class="grow"><b>${esc(S.user.name)} ${esc(S.user.surname)}</b><div class="muted" style="overflow:hidden;text-overflow:ellipsis">${esc(S.user.email)}</div></div></div>
-    <nav><a href="#/"${on('#/')}>${ICON.dumb}${t('workout')}</a><a href="#/progress"${on('#/progress')}>${ICON.chart}${t('progress')}</a><a href="#/settings"${on('#/settings')}>${ICON.gear}${t('options')}</a>
+    <nav><a href="#/"${on('#/')}>${ICON.dumb}${t('workout')}</a><a href="#/progress"${on('#/progress')}>${ICON.chart}${t('progress')}</a><a href="#/settings"${on('#/settings')}>${ICON.gear}${t('options')}</a><a href="#/files"${on('#/files')}>${ICON.up}${t('files')}</a>
     <button id="qr">${ICON.qr}${t('qrTitle')}</button>
     ${canInstall() ? `<button id="inst">${ICON.dl}${t('install')}</button>` : ''}<span style="flex:1"></span><button id="lo">${ICON.out}${t('logout')}</button></nav>`;
   d.querySelectorAll('a').forEach(a => a.onclick = () => toggleMenu(false));
@@ -268,11 +308,11 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.user) to
 
 /* ---------- Router ---------- */
 window.addEventListener('hashchange', () => { if (S.user) { document.querySelectorAll('.overlay').forEach(o => o.remove()); S.form = null; route(); } });
-function route() {
+function route(keepScroll) {
   if (!S.user || !$('#view')) return;
-  const h = location.hash.replace(/^#/, '') || '/';
-  if (h.startsWith('/progress')) viewProgress(); else if (h.startsWith('/settings')) viewSettings(); else viewWorkout();
-  renderMenu(); window.scrollTo(0, 0);
+  const h = location.hash.replace(/^#/, '') || '/', y = window.scrollY;
+  if (h.startsWith('/progress')) viewProgress(); else if (h.startsWith('/settings')) viewSettings(); else if (h.startsWith('/files')) viewFiles(); else viewWorkout();
+  renderMenu(); window.scrollTo(0, keepScroll ? y : 0);
 }
 
 /* ---------- Entrenamiento ---------- */
@@ -281,7 +321,7 @@ function viewWorkout() {
   const isToday = day === todayISO();
   const draft = freshDraft();
   const others = Object.keys(S.dirty).filter(d => d !== day).sort();
-  $('#view').innerHTML = `<div class="stack">
+  $('#view').innerHTML = `<div class="stack">${loadBanner()}
     <div class="daynav"><button class="icon-btn" id="dp" aria-label="${t('prev')}">${ICON.prev}</button>
       <div class="date">${isToday ? t('today') + ' · ' : ''}${fmtDate(day)}<input type="date" id="dd" value="${day}" aria-label="${t('date')}"></div>
       <button class="icon-btn" id="dn" aria-label="${t('next')}">${ICON.next}</button></div>
@@ -299,6 +339,7 @@ function viewWorkout() {
   if ($('#resume')) $('#resume').onclick = () => openForm(draft);
   document.querySelectorAll('.ex').forEach(el => el.onclick = () => openForm(null, +el.dataset.i));
   $('#saveday').onclick = saveDay;
+  bindRetry();
 }
 const setChip = s => `<span class="chip">${fmtNum(s.weight)} kg × ${s.reps}</span>`;
 const setsLabel = n => n === 1 ? (getLang() === 'de' ? t('set') : t('set').toLowerCase()) : t('sets');
@@ -399,20 +440,20 @@ function openForm(draft, index) {
 /* ---------- Progreso ---------- */
 function viewProgress() {
   const P = S.progress, items = allItems().filter(i => i.sets.length), st = stats(items);
-  if (!items.length) { $('#view').innerHTML = `<div class="empty">${t('noData')}</div>`; return; }
+  if (!items.length) { $('#view').innerHTML = `<div class="stack">${loadBanner()}<div class="empty">${t('noData')}</div><a class="btn ghost block" href="#/files">${t('importTitle')}</a></div>`; bindRetry(); return; }
   const mn = monthNames();
   const kpi = (v, l) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`;
   let body = '';
   if (P.tab === 'day') body = progDay(items);
   else if (P.tab === 'month') body = progMonth(st, mn);
   else body = progYear(st, mn);
-  $('#view').innerHTML = `<div class="stack">
+  $('#view').innerHTML = `<div class="stack">${loadBanner()}
     <div class="kpis">${kpi(st.sessions, t('sessions'))}${kpi(st.totalSets, t('totalSets'))}${kpi(fmtNum(st.totalVolume / 1000) + ' t', t('totalVolume'))}${kpi(st.streakWeeks, t('streak'))}</div>
     <p class="muted center" style="margin:0">${t('since')} ${fmtDate(st.first)}</p>
     <div class="tabs">${['day', 'month', 'year'].map(k => `<button data-tab="${k}" class="${P.tab === k ? 'on' : ''}">${t(k)}</button>`).join('')}</div>
     ${body}${progEvolution(st)}${progTop(st)}${progRecords(st)}</div>`;
   document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { P.tab = b.dataset.tab; viewProgress(); });
-  bindProgress(st);
+  bindProgress(st); bindRetry();
 }
 const dayList = day => {
   const its = allItems().filter(i => i.day === day);
@@ -501,15 +542,92 @@ function progRecords(st) {
   return `<div class="card stack"><h2>${t('records')}</h2>${rec.map(e => `<div class="row between"><span>${esc(e.name)}</span><span><b>${fmtNum(e.pr.weight)} kg × ${e.pr.reps}</b> <span class="muted">${fmtDate(e.pr.day)}</span></span></div>`).join('')}</div>`;
 }
 
+/* ---------- Subir archivos: importar / exportar ---------- */
+const readText = f => (f.text ? f.text() : new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsText(f); }));
+async function saveBlob(parts, name, type) {
+  const blob = new Blob(parts, { type });
+  const file = typeof File === 'function' ? new File([blob], name, { type }) : null;
+  if (isIOS() && file && navigator.canShare && navigator.canShare({ files: [file] })) {   // en iPhone/iPad la hoja «Compartir» permite guardar en Archivos
+    try { await navigator.share({ files: [file], title: name }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  const url = URL.createObjectURL(blob), el = document.createElement('a');
+  el.href = url; el.download = name; document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(url), 15000);
+}
+const importErr = e => ({ empty: t('importEmpty'), format: t('importFormat'), tooMany: t('importTooMany') }[String(e && e.message)] || t('importFail'));
+
+function viewFiles() {
+  const days = io.itemsToDays(allItems()), keys = Object.keys(days);
+  $('#view').innerHTML = `<div class="stack">${loadBanner()}
+    <div class="card stack"><h2>${t('importTitle')}</h2><p class="muted" style="margin:0">${t('importText')}</p>
+      <label class="btn" style="cursor:pointer">${t('chooseFile')}<input type="file" id="imp" hidden></label>
+      <button class="btn link" id="tpl">${t('template')}</button><div class="msg hidden" id="im"></div></div>
+    <div class="card stack"><h2>${t('exportTitle')}</h2>
+      ${keys.length ? `<div class="row"><label class="f grow">${t('from')}<input type="date" id="xf" value="${keys[0]}"></label><label class="f grow">${t('to')}<input type="date" id="xt" value="${keys[keys.length - 1]}"></label></div>
+      <button class="btn" id="xpdf">${t('exportPdf')}</button><div class="actions"><button class="btn ghost" id="xjson">${t('exportJson')}</button><button class="btn ghost" id="xcsv">${t('exportCsv')}</button></div>` : `<div class="muted">${t('noData')}</div>`}
+      <div class="msg hidden" id="xm"></div></div></div>`;
+  bindRetry();
+  const say = (el, txt, ok) => { el.textContent = txt; el.className = 'msg ' + (ok ? 'ok' : 'err'); };
+  const im = $('#im'), xm = $('#xm');
+  $('#tpl').onclick = () => saveBlob([io.templateCSV()], 'plantilla-my-gim.csv', 'text/csv');
+
+  $('#imp').onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    let r; try { r = io.parseImport(await readText(f), f.name); } catch (err) { return say(im, importErr(err), false); }
+    const clash = Object.keys(r.days).filter(d => dayItems(d).length).length, sk = r.skipped.exercises + r.skipped.sets + r.skipped.dates, s = r.stats;
+    const o = modal(`<h2>${t('importTitle')}</h2><p style="margin:0">${esc(f.name)}</p>
+      <p style="margin:0"><b>${t('importPreview', { days: s.days, ex: s.exercises, sets: s.sets, from: fmtDate(s.from), to: fmtDate(s.to) })}</b></p>
+      ${clash ? `<div class="msg">${t('importReplace', { n: clash })}</div>` : ''}${sk ? `<div class="msg">${t('importSkipped', { n: sk })}</div>` : ''}
+      <div class="actions"><button class="btn ghost" data-a="no">${t('cancel')}</button><button class="btn" data-a="ok">${t('importConfirm')}</button></div>`);
+    o.onclick = async ev => {
+      const act = ev.target.dataset.a; if (!act) return;
+      if (act === 'no') return closeModal(o);
+      ev.target.disabled = true; ev.target.textContent = t('saving');
+      try {
+        const res = await store.importDays(S.user.id, r.days);
+        for (const d of Object.keys(r.days)) delete S.dirty[d];
+        persistDirty(); S.db = await store.fetchAll(S.user.id); W(kCache(), S.db); S.loadErr = false;
+        closeModal(o); viewFiles(); say($('#im'), t('importDone', { days: res.days, ex: res.exercises }), true);
+        const lk = document.createElement('a'); lk.href = '#/progress'; lk.className = 'btn ghost'; lk.textContent = t('progress'); $('#im').after(lk);
+      } catch (err) { closeModal(o); say(im, errText(err) === t('errGeneric') ? t('importFail') : errText(err), false); }
+    };
+  };
+  if (!keys.length) return;
+
+  const range = () => {
+    const from = $('#xf').value, to = $('#xt').value;
+    const sel = Object.fromEntries(Object.entries(days).filter(([d]) => (!from || d >= from) && (!to || d <= to)));
+    if (!Object.keys(sel).length) { say(xm, t('pdfEmpty'), false); return null; }
+    xm.className = 'msg hidden'; return sel;
+  };
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  $('#xjson').onclick = () => { const sel = range(); if (sel) saveBlob([io.toJSONText(sel)], `my-gim-entrenos-${stamp}.json`, 'application/json'); };
+  $('#xcsv').onclick = () => { const sel = range(); if (sel) saveBlob([io.toCSVText(sel)], `my-gim-entrenos-${stamp}.csv`, 'text/csv'); };
+  $('#xpdf').onclick = () => {
+    const sel = range(); if (!sel) return;
+    const flat = Object.entries(sel).flatMap(([day, list]) => list.map(i => ({ ...i, day }))), st = stats(flat), ks = Object.keys(sel);
+    const loc = LOC[getLang()] || 'es-ES', wd = d => { const s = fromISO(d).toLocaleDateString(loc, { weekday: 'long' }); return s.charAt(0).toUpperCase() + s.slice(1); };
+    const summary = sets => { const out = []; for (let i = 0; i < sets.length;) { let j = i; while (j + 1 < sets.length && sets[j + 1].weight === sets[i].weight && sets[j + 1].reps === sets[i].reps) j++; out.push(`${j - i + 1} x ${sets[i].reps} @ ${fmtNum(sets[i].weight)} kg`); i = j + 1; } return out.join('   |   '); };
+    const bytes = buildPDF({
+      title: t('pdfTitle'),
+      lines: [`${S.user.name} ${S.user.surname}`.trim() + ' · ' + S.user.email,
+        `${fmtDate(ks[0])} - ${fmtDate(ks[ks.length - 1])} · ${st.sessions} ${t('sessions')} · ${st.totalSets} ${t('totalSets')} · ${fmtNum(st.totalVolume)} kg`],
+      footer: 'My Gim · ' + new Date().toLocaleDateString(loc),
+      days: ks.map(d => ({ heading: `${wd(d)} ${fmtDate(d)}`, exercises: sel[d].map(ex => ({ name: ex.name, detail: summary(ex.sets), note: ex.note })) }))
+    });
+    saveBlob([bytes], `my-gim-entrenos-${stamp}.pdf`, 'application/pdf');
+  };
+}
+
 /* ---------- Opciones ---------- */
 const ACCENTS = [['neutral', '#2b2b29'], ['blue', '#3b6fd4'], ['green', '#3f8a5f'], ['orange', '#d9722b'], ['purple', '#7a5bc7'], ['rose', '#cc4f78'], ['teal', '#2a8f98']];
 function viewSettings() {
   const u = S.user, p = S.prefs;
   $('#view').innerHTML = `<div class="stack">
     <div class="card stack"><h2>${t('profile')}</h2>
-      <div class="row">${avatarHTML(u, true)}<div class="stack" style="gap:8px"><div class="seg"><label class="btn ghost" style="cursor:pointer">${t('fromGallery')}<input type="file" accept="image/*" id="pg" hidden></label>
-      <label class="btn ghost" style="cursor:pointer">${t('fromCamera')}<input type="file" accept="image/*" capture="user" id="pc" hidden></label></div>
-      ${u.avatar ? `<button class="btn link" id="rp" style="text-align:left;padding:0">${t('removePhoto')}</button>` : ''}</div></div>
+      <div class="row" style="justify-content:center">${avatarHTML(u, true)}</div>
+      <div class="photobtns"><label class="btn ghost" style="cursor:pointer">${t('fromGallery')}<input type="file" accept="image/*" id="pg" hidden></label>
+      <label class="btn ghost" style="cursor:pointer">${t('fromCamera')}<input type="file" accept="image/*" capture="user" id="pc" hidden></label>
+      <button class="btn ghost${u.avatar ? '' : ' sel'}" id="rp">${t('noPhoto')}</button></div>
       <label class="f">${t('name')}<input type="text" id="pn" value="${esc(u.name)}"></label>
       <label class="f">${t('surname')}<input type="text" id="ps" value="${esc(u.surname)}"></label>
       <label class="f">${t('email')}<input type="email" id="pe" value="${esc(u.email)}"></label>
@@ -534,9 +652,9 @@ function viewSettings() {
       localStorage.setItem('mg_lastuser', JSON.stringify({ email: u.email, name: u.name })); say(pm, t('saved'), true); renderMenu(); }
     catch (e) { say(pm, errText(e), false); }
   };
-  const photo = async e => { const f = e.target.files[0]; if (!f) return; try { const a = await resizeAvatar(f); await store.updateProfile(u, { avatar: a }); u.avatar = a; viewSettings(); renderMenu(); } catch (er) { toast(errText(er)); } };
+  const photo = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { const a = await resizeAvatar(f); await store.updateProfile(u, { avatar: a }); u.avatar = a; viewSettings(); renderMenu(); } catch (er) { toast(errText(er)); } };
   $('#pg').onchange = photo; $('#pc').onchange = photo;
-  const rp = $('#rp'); if (rp) rp.onclick = async () => { await store.updateProfile(u, { avatar: '' }); u.avatar = ''; viewSettings(); renderMenu(); };
+  $('#rp').onclick = async () => { if (!u.avatar) return; try { await store.updateProfile(u, { avatar: '' }); u.avatar = ''; viewSettings(); renderMenu(); } catch (er) { toast(errText(er)); } };
   $('#npb').onclick = async () => { const v = $('#np').value; const nm = $('#nm');
     if (v.length < 6) return say(nm, t('errShort'), false);
     try { await store.updatePassword(v); $('#np').value = ''; say(nm, t('passwordChanged'), true); } catch (e) { say(nm, errText(e), false); } };

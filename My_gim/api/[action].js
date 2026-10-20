@@ -1,10 +1,16 @@
 // Una sola función para toda la API: /api/<acción> (POST con JSON; las lecturas también POST).
 const crypto = require('crypto');
 const L = require('./_lib');
-const SEEDS = require('./_seed');
 
 const fail = (status, code) => Object.assign(new Error(code), { status });
 const MAX_AVATAR = 60000;
+
+// Limpia y acota lo que llega del cliente (también se usa al importar).
+const cleanItems = items => (Array.isArray(items) ? items : []).slice(0, 100).map(i => ({
+  id: L.clip(i && i.id, 60) || crypto.randomUUID(), name: L.clip(i && i.name, 120), note: L.clip(i && i.note, 200),
+  sets: (Array.isArray(i && i.sets) ? i.sets : []).slice(0, 60).map(s => ({ weight: Math.min(Math.max(+s.weight || 0, 0), 5000), reps: Math.min(Math.max(Math.round(+s.reps) || 0, 0), 10000) })).filter(s => s.reps > 0)
+})).filter(i => i.name && i.sets.length);
+const validDay = d => /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(Date.parse(d));
 
 async function limit(key, max, secs) {
   const n = await L.redis('INCR', key);
@@ -18,7 +24,7 @@ const authed = async req => {
 const origin = req => process.env.APP_URL || `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers['x-forwarded-host'] || req.headers.host}`;
 
 const actions = {
-  async ping() { return { ok: true, configured: L.configured() }; },
+  async ping() { return { ok: true, configured: L.configured(), missing: L.missingEnv() }; },
 
   async signup(req, b) {
     const email = L.normEmail(b.email), name = L.clip(b.name, 60), surname = L.clip(b.surname, 80), pw = String(b.password || '');
@@ -30,11 +36,6 @@ const actions = {
     const { salt, hash } = await L.hashPw(pw);
     const u = { id, email, name, surname, avatar: '', prefs: {}, salt, hash, created: Date.now() };
     await L.saveUser(u);
-    const seed = SEEDS[email];                       // datos precargados para esa cuenta concreta
-    if (seed && name.toLowerCase() === seed.name) {
-      for (const [day, items] of Object.entries(seed.days))
-        await L.redis('HSET', 'days:' + id, day, JSON.stringify(items.map(i => ({ id: crypto.randomUUID(), ...i }))));
-    }
     return { token: L.makeToken(id), user: L.publicUser(u) };
   },
 
@@ -105,13 +106,25 @@ const actions = {
 
   async 'save-day'(req, b) {
     const u = await authed(req); const day = String(b.day || '');
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Array.isArray(b.items) || b.items.length > 100) throw fail(400, 'fields');
-    const items = b.items.map(i => ({
-      id: L.clip(i.id, 60), name: L.clip(i.name, 120), note: L.clip(i.note, 200),
-      sets: (Array.isArray(i.sets) ? i.sets : []).slice(0, 60).map(s => ({ weight: Math.min(Math.max(+s.weight || 0, 0), 5000), reps: Math.min(Math.max(Math.round(+s.reps) || 0, 0), 10000) })).filter(s => s.reps > 0)
-    })).filter(i => i.name && i.sets.length);
+    if (!validDay(day) || !Array.isArray(b.items) || b.items.length > 100) throw fail(400, 'fields');
+    const items = cleanItems(b.items);
     if (items.length) await L.redis('HSET', 'days:' + u.id, day, JSON.stringify(items)); else await L.redis('HDEL', 'days:' + u.id, day);
     return { ok: true };
+  },
+
+  // Importación masiva: {days:{'2026-06-22':[{name,sets:[{weight,reps}],note}], ...}}. Cada día del archivo REEMPLAZA al que hubiera.
+  async 'import-days'(req, b) {
+    const u = await authed(req); const days = b.days;
+    if (!days || typeof days !== 'object' || Array.isArray(days)) throw fail(400, 'fields');
+    const keys = Object.keys(days); if (!keys.length || keys.length > 800 || !keys.every(validDay)) throw fail(400, 'fields');
+    const args = [], del = []; let exercises = 0;
+    for (const day of keys) {
+      const items = cleanItems(days[day]);
+      if (items.length) { args.push(day, JSON.stringify(items)); exercises += items.length; } else del.push(day);
+    }
+    if (args.length) await L.redis('HSET', 'days:' + u.id, ...args);
+    if (del.length) await L.redis('HDEL', 'days:' + u.id, ...del);
+    return { ok: true, days: args.length / 2, exercises };
   }
 };
 

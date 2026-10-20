@@ -8,10 +8,12 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   const sameOrigin = url.origin === location.origin;
   const isCdn = url.hostname === 'cdn.jsdelivr.net';
-  if (!sameOrigin && !isCdn) return;            // las llamadas a Supabase van directas
+  if (!sameOrigin && !isCdn) return;            // el resto (p. ej. la API, que es POST) va directo
   e.respondWith((async () => {
     try {
-      const res = await fetch(req, { cache: 'no-cache', signal: AbortSignal.timeout(6000) }); // si la red tarda, tirar de la copia guardada
+      // Si la red tarda más de 6 s se tira de la copia guardada. (AbortSignal.timeout no existe en iOS < 16: temporizador propio.)
+      const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 6000);
+      const res = await fetch(req, { cache: 'no-cache', signal: ctl.signal }).finally(() => clearTimeout(timer));
       if (res && res.ok) { const c = await caches.open(CACHE); c.put(req, res.clone()); }
       return res;
     } catch (err) {

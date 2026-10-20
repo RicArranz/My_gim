@@ -1,0 +1,1369 @@
+{
+  "format": "my-gim",
+  "version": 1,
+  "exported": "2026-10-20T11:10:57.391Z",
+  "days": {
+    "2026-06-22": [
+      {
+        "name": "Sentadilla",
+        "sets": [
+          {
+            "weight": 16,
+            "reps": 12
+          },
+          {
+            "weight": 16,
+            "reps": 12
+          },
+          {
+            "weight": 16,
+            "reps": 12
+          },
+          {
+            "weight": 16,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-06-27": [
+      {
+        "name": "Peso muerto",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 12
+          },
+          {
+            "weight": 30,
+            "reps": 12
+          },
+          {
+            "weight": 30,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-07-07": [
+      {
+        "name": "Hip thrust",
+        "sets": [
+          {
+            "weight": 2.5,
+            "reps": 9
+          },
+          {
+            "weight": 2.5,
+            "reps": 9
+          },
+          {
+            "weight": 2.5,
+            "reps": 9
+          },
+          {
+            "weight": 5,
+            "reps": 8
+          }
+        ],
+        "note": "3 series de 8-10 reps con 2,5 kg + 1 serie de 8 con 5 kg"
+      },
+      {
+        "name": "Tríceps",
+        "sets": [
+          {
+            "weight": 6,
+            "reps": 12
+          },
+          {
+            "weight": 6,
+            "reps": 12
+          },
+          {
+            "weight": 6,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Bíceps",
+        "sets": [
+          {
+            "weight": 5,
+            "reps": 12
+          },
+          {
+            "weight": 5,
+            "reps": 12
+          },
+          {
+            "weight": 5,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Lunges",
+        "sets": [
+          {
+            "weight": 8,
+            "reps": 12
+          },
+          {
+            "weight": 8,
+            "reps": 12
+          },
+          {
+            "weight": 8,
+            "reps": 12
+          }
+        ],
+        "note": "8 + 8 kg"
+      }
+    ],
+    "2026-07-11": [
+      {
+        "name": "Sentadilla",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 8
+          }
+        ],
+        "note": "Barra 20 kg + 10 kg"
+      },
+      {
+        "name": "Peso muerto",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 5
+          }
+        ],
+        "note": "Barra 20 kg + 10 kg"
+      },
+      {
+        "name": "Press hombro",
+        "sets": [
+          {
+            "weight": 12,
+            "reps": 12
+          },
+          {
+            "weight": 16,
+            "reps": 10
+          },
+          {
+            "weight": 16,
+            "reps": 10
+          }
+        ],
+        "note": "Barra 7 kg + 5 kg (1x12) y + 9 kg (2x10)"
+      }
+    ],
+    "2026-07-14": [
+      {
+        "name": "Hip thrust",
+        "sets": [
+          {
+            "weight": 0,
+            "reps": 10
+          },
+          {
+            "weight": 0,
+            "reps": 10
+          },
+          {
+            "weight": 0,
+            "reps": 10
+          },
+          {
+            "weight": 0,
+            "reps": 10
+          }
+        ],
+        "note": "Sin discos"
+      },
+      {
+        "name": "Tríceps",
+        "sets": [
+          {
+            "weight": 7,
+            "reps": 12
+          },
+          {
+            "weight": 7,
+            "reps": 12
+          },
+          {
+            "weight": 7,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Elevaciones laterales",
+        "sets": [
+          {
+            "weight": 6,
+            "reps": 5
+          },
+          {
+            "weight": 6,
+            "reps": 5
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Bíceps",
+        "sets": [
+          {
+            "weight": 6,
+            "reps": 12
+          },
+          {
+            "weight": 6,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-07-21": [
+      {
+        "name": "Sentadilla",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 8
+          },
+          {
+            "weight": 30,
+            "reps": 8
+          }
+        ],
+        "note": "Barra 20 kg + 10 kg"
+      },
+      {
+        "name": "Peso muerto",
+        "sets": [
+          {
+            "weight": 40,
+            "reps": 10
+          },
+          {
+            "weight": 40,
+            "reps": 10
+          },
+          {
+            "weight": 40,
+            "reps": 10
+          },
+          {
+            "weight": 40,
+            "reps": 10
+          }
+        ],
+        "note": "Barra 20 kg + 20 kg"
+      },
+      {
+        "name": "Elevaciones laterales",
+        "sets": [
+          {
+            "weight": 5,
+            "reps": 10
+          },
+          {
+            "weight": 5,
+            "reps": 10
+          },
+          {
+            "weight": 5,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-07-28": [
+      {
+        "name": "Sentadilla",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 10
+          }
+        ],
+        "note": "Barra 20 kg + 10 kg"
+      },
+      {
+        "name": "Tríceps",
+        "sets": [
+          {
+            "weight": 7,
+            "reps": 10
+          },
+          {
+            "weight": 7,
+            "reps": 10
+          },
+          {
+            "weight": 7,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Elevaciones laterales",
+        "sets": [
+          {
+            "weight": 4,
+            "reps": 12
+          },
+          {
+            "weight": 4,
+            "reps": 12
+          },
+          {
+            "weight": 4,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-07-30": [
+      {
+        "name": "Hip thrust",
+        "sets": [
+          {
+            "weight": 2.5,
+            "reps": 10
+          },
+          {
+            "weight": 2.5,
+            "reps": 10
+          },
+          {
+            "weight": 2.5,
+            "reps": 10
+          },
+          {
+            "weight": 2.5,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Leg curl",
+        "sets": [
+          {
+            "weight": 15,
+            "reps": 12
+          },
+          {
+            "weight": 15,
+            "reps": 12
+          },
+          {
+            "weight": 15,
+            "reps": 12
+          }
+        ],
+        "note": "3-4 series de 12"
+      },
+      {
+        "name": "Jalón al pecho",
+        "sets": [
+          {
+            "weight": 25,
+            "reps": 12
+          },
+          {
+            "weight": 25,
+            "reps": 12
+          },
+          {
+            "weight": 25,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-08-03": [
+      {
+        "name": "Abductor interno",
+        "sets": [
+          {
+            "weight": 35,
+            "reps": 12
+          },
+          {
+            "weight": 35,
+            "reps": 12
+          },
+          {
+            "weight": 35,
+            "reps": 12
+          }
+        ],
+        "note": "35-40 kg"
+      },
+      {
+        "name": "Abductor externo",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 14
+          },
+          {
+            "weight": 30,
+            "reps": 14
+          },
+          {
+            "weight": 30,
+            "reps": 14
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Tríceps polea",
+        "sets": [
+          {
+            "weight": 12.5,
+            "reps": 10
+          },
+          {
+            "weight": 12.5,
+            "reps": 10
+          },
+          {
+            "weight": 12.5,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Press hombro",
+        "sets": [
+          {
+            "weight": 6,
+            "reps": 12
+          },
+          {
+            "weight": 6,
+            "reps": 12
+          },
+          {
+            "weight": 6,
+            "reps": 12
+          }
+        ],
+        "note": "Mancuernas"
+      }
+    ],
+    "2026-08-05": [
+      {
+        "name": "Sentadilla",
+        "sets": [
+          {
+            "weight": 20,
+            "reps": 6
+          },
+          {
+            "weight": 10,
+            "reps": 12
+          },
+          {
+            "weight": 10,
+            "reps": 12
+          },
+          {
+            "weight": 5,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Peso muerto",
+        "sets": [
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Flexiones",
+        "sets": [
+          {
+            "weight": 0,
+            "reps": 10
+          },
+          {
+            "weight": 0,
+            "reps": 10
+          },
+          {
+            "weight": 0,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-08-08": [
+      {
+        "name": "Hip thrust",
+        "sets": [
+          {
+            "weight": 5,
+            "reps": 10
+          },
+          {
+            "weight": 5,
+            "reps": 10
+          },
+          {
+            "weight": 5,
+            "reps": 10
+          },
+          {
+            "weight": 5,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Remo",
+        "sets": [
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Lunges máquina",
+        "sets": [
+          {
+            "weight": 10,
+            "reps": 12
+          },
+          {
+            "weight": 10,
+            "reps": 12
+          },
+          {
+            "weight": 10,
+            "reps": 12
+          },
+          {
+            "weight": 10,
+            "reps": 12
+          }
+        ],
+        "note": "Máquina de prensa, 12 + 12"
+      }
+    ],
+    "2026-08-11": [
+      {
+        "name": "Sentadilla",
+        "sets": [
+          {
+            "weight": 2.5,
+            "reps": 12
+          },
+          {
+            "weight": 2.5,
+            "reps": 12
+          },
+          {
+            "weight": 2.5,
+            "reps": 12
+          },
+          {
+            "weight": 2.5,
+            "reps": 12
+          }
+        ],
+        "note": "Buena técnica"
+      },
+      {
+        "name": "Peso muerto",
+        "sets": [
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Flexiones",
+        "sets": [
+          {
+            "weight": 0,
+            "reps": 12
+          },
+          {
+            "weight": 0,
+            "reps": 12
+          },
+          {
+            "weight": 0,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-08-13": [
+      {
+        "name": "Hip thrust",
+        "sets": [
+          {
+            "weight": 5,
+            "reps": 12
+          },
+          {
+            "weight": 5,
+            "reps": 12
+          },
+          {
+            "weight": 5,
+            "reps": 12
+          },
+          {
+            "weight": 5,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-08-17": [
+      {
+        "name": "Abductor interno",
+        "sets": [
+          {
+            "weight": 25,
+            "reps": 10
+          },
+          {
+            "weight": 25,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-08-28": [
+      {
+        "name": "Abductor externo",
+        "sets": [
+          {
+            "weight": 40,
+            "reps": 12
+          },
+          {
+            "weight": 40,
+            "reps": 12
+          },
+          {
+            "weight": 40,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Abductor interno",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Gemelo",
+        "sets": [
+          {
+            "weight": 60,
+            "reps": 12
+          },
+          {
+            "weight": 60,
+            "reps": 12
+          },
+          {
+            "weight": 60,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Press banca",
+        "sets": [
+          {
+            "weight": 10,
+            "reps": 5
+          },
+          {
+            "weight": 10,
+            "reps": 5
+          },
+          {
+            "weight": 10,
+            "reps": 5
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Tríceps",
+        "sets": [
+          {
+            "weight": 7,
+            "reps": 11
+          },
+          {
+            "weight": 7,
+            "reps": 11
+          },
+          {
+            "weight": 7,
+            "reps": 11
+          }
+        ],
+        "note": "Mancuerna"
+      },
+      {
+        "name": "Bíceps",
+        "sets": [
+          {
+            "weight": 6,
+            "reps": 10
+          },
+          {
+            "weight": 6,
+            "reps": 10
+          },
+          {
+            "weight": 6,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-09-01": [
+      {
+        "name": "Peso muerto",
+        "sets": [
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          }
+        ],
+        "note": "Subir la próxima semana"
+      }
+    ],
+    "2026-09-03": [
+      {
+        "name": "Hip thrust",
+        "sets": [
+          {
+            "weight": 5,
+            "reps": 12
+          },
+          {
+            "weight": 5,
+            "reps": 12
+          },
+          {
+            "weight": 5,
+            "reps": 12
+          },
+          {
+            "weight": 5,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Press banca",
+        "sets": [
+          {
+            "weight": 10,
+            "reps": 12
+          },
+          {
+            "weight": 10,
+            "reps": 12
+          },
+          {
+            "weight": 10,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-09-06": [
+      {
+        "name": "Abductor externo",
+        "sets": [
+          {
+            "weight": 45,
+            "reps": 12
+          },
+          {
+            "weight": 45,
+            "reps": 12
+          },
+          {
+            "weight": 45,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Abductor interno",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 12
+          },
+          {
+            "weight": 30,
+            "reps": 12
+          },
+          {
+            "weight": 30,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Lunges máquina",
+        "sets": [
+          {
+            "weight": 20,
+            "reps": 10
+          },
+          {
+            "weight": 20,
+            "reps": 10
+          },
+          {
+            "weight": 20,
+            "reps": 10
+          }
+        ],
+        "note": "Máquina"
+      },
+      {
+        "name": "Press banca inclinado",
+        "sets": [
+          {
+            "weight": 10,
+            "reps": 10
+          },
+          {
+            "weight": 10,
+            "reps": 10
+          },
+          {
+            "weight": 10,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-09-10": [
+      {
+        "name": "Sentadilla",
+        "sets": [
+          {
+            "weight": 10,
+            "reps": 8
+          },
+          {
+            "weight": 10,
+            "reps": 8
+          },
+          {
+            "weight": 10,
+            "reps": 8
+          },
+          {
+            "weight": 10,
+            "reps": 8
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-09-26": [
+      {
+        "name": "Hip thrust",
+        "sets": [
+          {
+            "weight": 10,
+            "reps": 10
+          },
+          {
+            "weight": 10,
+            "reps": 10
+          },
+          {
+            "weight": 10,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-09-27": [
+      {
+        "name": "Peso muerto",
+        "sets": [
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 20,
+            "reps": 12
+          },
+          {
+            "weight": 24,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Remo espalda",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 10
+          },
+          {
+            "weight": 30,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Jalón al pecho",
+        "sets": [
+          {
+            "weight": 25,
+            "reps": 12
+          },
+          {
+            "weight": 25,
+            "reps": 12
+          },
+          {
+            "weight": 25,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Tríceps",
+        "sets": [
+          {
+            "weight": 7,
+            "reps": 12
+          },
+          {
+            "weight": 7,
+            "reps": 12
+          },
+          {
+            "weight": 7,
+            "reps": 11
+          }
+        ],
+        "note": "Mancuerna"
+      }
+    ],
+    "2026-10-03": [
+      {
+        "name": "Sentadilla",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 8
+          },
+          {
+            "weight": 30,
+            "reps": 8
+          },
+          {
+            "weight": 30,
+            "reps": 8
+          }
+        ],
+        "note": "Barra 20 kg + 10 kg"
+      },
+      {
+        "name": "Peso muerto",
+        "sets": [
+          {
+            "weight": 45,
+            "reps": 8
+          },
+          {
+            "weight": 45,
+            "reps": 8
+          },
+          {
+            "weight": 45,
+            "reps": 8
+          }
+        ],
+        "note": "Barra 20 kg + 25 kg"
+      }
+    ],
+    "2026-10-04": [
+      {
+        "name": "Abductor interno",
+        "sets": [
+          {
+            "weight": 35,
+            "reps": 8
+          },
+          {
+            "weight": 35,
+            "reps": 7
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Abductor externo",
+        "sets": [
+          {
+            "weight": 50,
+            "reps": 8
+          },
+          {
+            "weight": 50,
+            "reps": 8
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Press banca",
+        "sets": [
+          {
+            "weight": 10,
+            "reps": 10
+          },
+          {
+            "weight": 10,
+            "reps": 10
+          },
+          {
+            "weight": 10,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Jalón al pecho",
+        "sets": [
+          {
+            "weight": 25,
+            "reps": 10
+          },
+          {
+            "weight": 25,
+            "reps": 10
+          },
+          {
+            "weight": 25,
+            "reps": 10
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Remo",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 8
+          },
+          {
+            "weight": 30,
+            "reps": 8
+          },
+          {
+            "weight": 30,
+            "reps": 8
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Tríceps polea",
+        "sets": [
+          {
+            "weight": 10,
+            "reps": 12
+          },
+          {
+            "weight": 10,
+            "reps": 12
+          }
+        ],
+        "note": ""
+      }
+    ],
+    "2026-10-10": [
+      {
+        "name": "Press banca",
+        "sets": [
+          {
+            "weight": 14,
+            "reps": 8
+          },
+          {
+            "weight": 14,
+            "reps": 8
+          },
+          {
+            "weight": 14,
+            "reps": 5
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Jalón al pecho",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 8
+          },
+          {
+            "weight": 30,
+            "reps": 8
+          },
+          {
+            "weight": 30,
+            "reps": 8
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Remo",
+        "sets": [
+          {
+            "weight": 30,
+            "reps": 8
+          },
+          {
+            "weight": 30,
+            "reps": 8
+          },
+          {
+            "weight": 30,
+            "reps": 8
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "Press hombro",
+        "sets": [
+          {
+            "weight": 6,
+            "reps": 10
+          },
+          {
+            "weight": 6,
+            "reps": 10
+          }
+        ],
+        "note": "Mancuernas"
+      },
+      {
+        "name": "Elevaciones laterales",
+        "sets": [
+          {
+            "weight": 6,
+            "reps": 6
+          },
+          {
+            "weight": 6,
+            "reps": 6
+          }
+        ],
+        "note": "Mancuernas"
+      },
+      {
+        "name": "Tríceps",
+        "sets": [
+          {
+            "weight": 8,
+            "reps": 12
+          },
+          {
+            "weight": 8,
+            "reps": 11
+          }
+        ],
+        "note": "Mancuernas"
+      },
+      {
+        "name": "Bíceps",
+        "sets": [
+          {
+            "weight": 6,
+            "reps": 8
+          },
+          {
+            "weight": 6,
+            "reps": 9
+          }
+        ],
+        "note": "Mancuernas"
+      }
+    ]
+  }
+}

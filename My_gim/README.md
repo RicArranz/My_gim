@@ -24,6 +24,9 @@ La cuenta se puede usar en cualquier dispositivo: los entrenos guardados con «G
 - Si sales a medias de un ejercicio, queda como borrador 30 min; al reabrir la app sale el aviso «¿seguir por donde lo dejaste?» (Sí/No).
 - Se puede cambiar la fecha del día para registrar entrenamientos antiguos.
 - Progreso: día / mes (calendario) / año, evolución por ejercicio (peso máximo, 1RM estimado, volumen) con % de mejora desde el inicio, más entrenados, récords, racha semanal.
+- **Subir archivos** (menú): importar entrenamientos desde un `.json` o `.csv` (cada día del archivo se coloca en su fecha y sustituye a lo que hubiera ese día; antes de importar muestra un resumen y avisa de los días que se reemplazan) y exportar a **PDF**, copia `.json` o Excel `.csv`, con rango de fechas. Formato CSV (separador `;` o `,`, fechas `dd/mm/aaaa`; si falta el año se usa el actual): `fecha;ejercicio;serie;peso_kg;repeticiones;nota`, una fila por serie. Hay una plantilla descargable en la propia pantalla.
+- **Archivo de Lorena:** `node tools/make-import.mjs` genera `importar/entrenos-lorena.json` y `.csv` a partir de `tools/datos-lorena.cjs`. Se sube a mano desde «Subir archivos»; no hay carga automática de ningún usuario. `importar/` y `tools/datos-lorena.cjs` están en `.gitignore` (datos personales).
+- **Arranque:** si ya habías entrado antes, la app abre al instante con la copia del dispositivo y comprueba la sesión y los datos en segundo plano. Si el servidor falla se avisa (botón «Reintentar»); si el dominio no tiene las variables configuradas o la API no responde, sale un mensaje que dice qué falta en vez de caer en silencio al modo local.
 - Código QR: en el menú, «Código QR» muestra el QR de la app (con copiar/compartir enlace). Para imprimirlo: `node tools/qr.js https://tu-app.vercel.app qr/qr-mygim.svg`.
 - Atrás del móvil con un ejercicio abierto: lo cierra y deja el borrador. Si hay otros días sin guardar en la copia de seguridad, avisa arriba.
 - Instalación: aviso al cargar en el navegador y botón «Instalar app» en el menú hasta que se instale (en iPhone muestra cómo hacerlo desde Compartir).
@@ -38,6 +41,7 @@ La cuenta se puede usar en cualquier dispositivo: los entrenos guardados con «G
 ```
 node test/server.js        # estáticos + API real con Redis y correo simulados → http://localhost:8123
 node test/remoto.js        # registro, guardar, otro dispositivo, recuperar contraseña
+node test/archivos.js      # importar/exportar (PDF, JSON, CSV), Lorena, arranque rápido y fallos de carga (levanta sus propios servidores)
 python3 -m http.server 8125 && node test/flujo.js   # modo local, móvil 390px
 ```
 (playwright necesario; `CHROME_PATH` opcional. El service worker exige http://localhost o https.)

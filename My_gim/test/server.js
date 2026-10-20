@@ -11,8 +11,9 @@ function cmd([c, k, ...a]) {
   if (c === 'DEL') { const had = kv.delete(k); return had ? 1 : 0; }
   if (c === 'INCR') { const n = (alive(k) ? +kv.get(k) : 0) + 1; kv.set(k, String(n)); return n; }
   if (c === 'EXPIRE') { exp.set(k, Date.now() + a[0] * 1000); return 1; }
-  if (c === 'HSET') { const h = alive(k) ? kv.get(k) : {}; h[a[0]] = a[1]; kv.set(k, h); return 1; }
-  if (c === 'HDEL') { const h = kv.get(k) || {}; delete h[a[0]]; return 1; }
+  if (c === 'HSET') { const h = alive(k) ? kv.get(k) : {}; for (let i = 0; i < a.length; i += 2) h[a[i]] = a[i + 1]; kv.set(k, h); return a.length / 2; }
+  if (c === 'HLEN') return Object.keys(alive(k) ? kv.get(k) : {}).length;
+  if (c === 'HDEL') { const h = kv.get(k) || {}; a.forEach(f => delete h[f]); return a.length; }
   if (c === 'HGETALL') return Object.entries(alive(k) ? kv.get(k) : {}).flat();
   throw new Error('cmd ' + c);
 }
@@ -21,8 +22,8 @@ http.createServer((q, s) => { let b = ''; q.on('data', d => b += d); q.on('end',
   if (q.url === '/redis') { try { s.end(JSON.stringify({ result: cmd(JSON.parse(b)) })); } catch (e) { s.end(JSON.stringify({ error: e.message })); } }
   else if (q.url === '/mail') { mails.push(JSON.parse(b)); s.end('{"id":"1"}'); }
   else { s.end(JSON.stringify(mails)); }
-}); }).listen(8124);
-Object.assign(process.env, { KV_REST_API_URL: 'http://localhost:8124/redis', KV_REST_API_TOKEN: 't', AUTH_SECRET: 'test-secret', RESEND_API_KEY: 'k', RESEND_API_URL: 'http://localhost:8124/mail' });
+}); }).listen(process.env.REDIS_PORT || 8124);
+if (!process.env.NO_CONFIG) Object.assign(process.env, { KV_REST_API_URL: `http://localhost:${process.env.REDIS_PORT || 8124}/redis`, KV_REST_API_TOKEN: 't', AUTH_SECRET: 'test-secret', RESEND_API_KEY: 'k', RESEND_API_URL: `http://localhost:${process.env.REDIS_PORT || 8124}/mail` });
 const handler = require('../api/[action].js');
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 http.createServer((q, s) => {
@@ -38,4 +39,4 @@ http.createServer((q, s) => {
   const f = path.join(ROOT, u.pathname === '/' ? 'index.html' : decodeURIComponent(u.pathname));
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { s.statusCode = 404; return s.end(); }
   s.setHeader('Content-Type', MIME[path.extname(f)] || 'application/octet-stream'); fs.createReadStream(f).pipe(s);
-}).listen(8123, () => console.log('http://localhost:8123'));
+}).listen(process.env.PORT || 8123, () => console.log('http://localhost:8123'));

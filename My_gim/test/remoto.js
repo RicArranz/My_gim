@@ -31,18 +31,6 @@ const B = 'http://localhost:8123/', ok = (c, m) => { console.log((c ? 'OK   ' : 
   // sesión persiste al recargar
   await A.reload(); await A.waitForSelector('#go, #view'); ok(true, 'sesión recordada tras recargar');
   const bad = await fetch(B + 'api/days', { method: 'POST', headers: { Authorization: 'Bearer x.y' } }); ok(bad.status === 401, 'API rechaza token falso');
-  // cuenta precargada (Lorena)
-  const reg = async (name, mail) => { const p = await mk(); await p.goto(B); await p.waitForSelector('.auth'); await p.click('#su'); await p.fill('[name=name]', name); await p.fill('[name=email]', mail); await p.fill('[name=password]', 'secreto1'); await p.click('#f button'); await p.waitForSelector('#view'); return p; };
-  const LP = await reg(' Lorena ', 'LorenaPoza.docente@gmail.com');
-  await LP.goto(B + '#/progress'); await LP.waitForSelector('.kpis'); await LP.screenshot({ path: '/tmp/mygim_shots/lorena.png', fullPage: true });
-  const k = (await LP.locator('.kpis').innerText()).replace(/\n/g, ' ');
-  ok(/^24 Entrenos 222 Series/.test(k), 'Lorena: 24 entrenos y 222 series precargados (' + k + ')');
-  ok((await LP.locator('.muted.center').innerText()).includes('22/06/26'), 'Lorena: empieza el 22/06/26');
-  await LP.goto(B + '#/'); await LP.waitForSelector('#add'); await LP.fill('#dd', '2026-10-10');
-  ok((await LP.locator('.ex').count()) === 7 && (await LP.locator('main').innerText()).includes('Mancuernas'), 'Lorena: 10/10 con sus 7 ejercicios y notas');
-  const NL = await reg('Otra', 'lorenapoza.docente2@gmail.com'); await NL.goto(B + '#/progress'); await NL.waitForSelector('.empty');
-  ok(true, 'otro correo no recibe datos');
-  const NN = await reg('Pepa', 'LORENAPOZA.docente@gmail.com').then(() => 'x', e => 'dup'); ok(NN === 'dup', 'el correo de Lorena no se puede registrar dos veces');
   ok([A, C, R].every(p => !p.errs.length), 'sin errores JS');
   await br.close();
 })();
