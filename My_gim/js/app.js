@@ -451,7 +451,7 @@ function viewProgress() {
     <div class="kpis">${kpi(st.sessions, t('sessions'))}${kpi(st.totalSets, t('totalSets'))}${kpi(fmtNum(st.totalVolume / 1000) + ' t', t('totalVolume'))}${kpi(st.streakWeeks, t('streak'))}</div>
     <p class="muted center" style="margin:0">${t('since')} ${fmtDate(st.first)}</p>
     <div class="tabs">${['day', 'month', 'year'].map(k => `<button data-tab="${k}" class="${P.tab === k ? 'on' : ''}">${t(k)}</button>`).join('')}</div>
-    ${body}${progEvolution(st)}${progTop(st)}${progRecords(st)}</div>`;
+    ${body}${progEvolution(st)}${progTop(st)}${progRecords(st)}${progWipe()}</div>`;
   document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { P.tab = b.dataset.tab; viewProgress(); });
   bindProgress(st); bindRetry();
 }
@@ -501,6 +501,7 @@ function bindProgress(st) {
   const pd = $('#pd'); if (pd) pd.onchange = e => { if (e.target.value) { P.date = e.target.value; viewProgress(); } };
   document.querySelectorAll('[data-day]').forEach(b => b.onclick = () => { P.date = b.dataset.day; viewProgress(); });
   document.querySelectorAll('[data-month]').forEach(g => g.onclick = () => { const d = fromISO(P.date); d.setDate(1); d.setMonth(+g.dataset.month); P.date = toISO(d); P.tab = 'month'; viewProgress(); });
+  const wp = $('#wipe'); if (wp) wp.onclick = wipeProgress;
   const ge = $('#goedit'); if (ge) ge.onclick = () => { S.date = P.date; };
   const ex = $('#exsel'); if (ex) ex.onchange = e => { P.exKey = e.target.value; viewProgress(); };
   document.querySelectorAll('[data-metric]').forEach(b => b.onclick = () => { P.metric = b.dataset.metric; viewProgress(); });
@@ -536,6 +537,31 @@ function lineChart(pts) {
 function progTop(st) {
   const top = Object.values(st.byEx).sort((a, b) => b.count - a.count).slice(0, 5), max = top[0].count;
   return `<div class="card stack"><h2>${t('topExercises')}</h2><div class="bars">${top.map(e => `<div class="b"><span>${esc(e.name)}</span><b>${e.count}</b><div class="track"><i style="width:${e.count / max * 100}%"></i></div></div>`).join('')}</div></div>`;
+}
+const progWipe = () => `<div class="card stack"><h2>${t('wipeBtn')}</h2><p class="muted" style="margin:0">${t('wipeHint')}</p><button class="btn danger" id="wipe">${t('wipeBtn')}</button></div>`;
+
+// Restaurar progreso: borra todos los entrenamientos (servidor y dispositivo). Pide escribir una palabra para evitar toques accidentales.
+function wipeProgress() {
+  const items = allItems().filter(i => i.sets.length), days = new Set(items.map(i => i.day)).size, word = t('wipeWord');
+  const o = modal(`<h2>${t('wipeTitle')}</h2><p style="margin:0">${t('wipeText', { days, ex: items.length })}</p>
+    <button class="btn ghost" data-a="bk">${t('wipeBackup')}</button>
+    <label class="f">${t('wipeType', { word })}<input type="text" id="wt" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+    <div class="msg err hidden" id="wm"></div>
+    <div class="actions"><button class="btn ghost" data-a="no">${t('cancel')}</button><button class="btn danger-solid" data-a="ok" disabled>${t('wipeConfirm')}</button></div>`);
+  const ok = o.querySelector('[data-a=ok]'), inp = o.querySelector('#wt');
+  inp.oninput = () => { ok.disabled = inp.value.trim().toLocaleUpperCase() !== word.toLocaleUpperCase(); };
+  o.onclick = async e => {
+    const act = e.target.dataset.a; if (!act) return;
+    if (act === 'no') return closeModal(o);
+    if (act === 'bk') return saveBlob([io.toJSONText(io.itemsToDays(items))], `my-gim-copia-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.json`, 'application/json');
+    if (ok.disabled) return;
+    ok.disabled = true; ok.textContent = t('saving');
+    try {
+      await store.resetAll(S.user.id);                       // primero el servidor: si falla, no se toca nada
+      S.db = []; S.dirty = {}; persistDirty(); W(kCache(), []); localStorage.removeItem(kDraft());
+      S.progress.exKey = ''; closeModal(o); toast(t('wipeDone')); route();
+    } catch { const m = o.querySelector('#wm'); m.textContent = t('wipeFail'); m.classList.remove('hidden'); ok.textContent = t('wipeConfirm'); ok.disabled = false; }
+  };
 }
 function progRecords(st) {
   const rec = Object.values(st.byEx).sort((a, b) => b.pr.weight - a.pr.weight).slice(0, 8);

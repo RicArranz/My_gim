@@ -158,3 +158,4 @@ svg.chart .bar.sel{opacity:1}
 .photobtns .btn{padding:10px 6px;font-size:.9rem}
 .btn.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);font-weight:700}
 .msg.stack{display:flex}
+.btn.danger-solid{background:var(--danger);color:#fff}

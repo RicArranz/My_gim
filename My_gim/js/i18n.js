@@ -445,6 +445,95 @@ const X2 = {
 };
 for (const l in X2) Object.assign(T[l], X2[l]);
 
+// Restaurar progreso
+const X3 = {
+ "es": {
+  "wipeBtn": "Restaurar progreso",
+  "wipeHint": "Borra todos tus entrenamientos para empezar de cero. Tu cuenta, tu foto y tus ajustes no se tocan.",
+  "wipeTitle": "¿Borrar todo tu progreso?",
+  "wipeText": "Se eliminarán {days} días y {ex} ejercicios, del servidor y de este dispositivo. No se puede deshacer.",
+  "wipeBackup": "Descargar copia antes (.json)",
+  "wipeType": "Para confirmar, escribe {word}",
+  "wipeWord": "BORRAR",
+  "wipeConfirm": "Borrar todo",
+  "wipeDone": "Progreso restaurado: empiezas de cero.",
+  "wipeFail": "No se pudo borrar. Inténtalo de nuevo."
+ },
+ "gl": {
+  "wipeBtn": "Restaurar progreso",
+  "wipeHint": "Borra todos os teus adestramentos para comezar de cero. A túa conta, a foto e os axustes non se tocan.",
+  "wipeTitle": "Borrar todo o teu progreso?",
+  "wipeText": "Eliminaranse {days} días e {ex} exercicios, do servidor e deste dispositivo. Non se pode desfacer.",
+  "wipeBackup": "Descargar copia antes (.json)",
+  "wipeType": "Para confirmar, escribe {word}",
+  "wipeWord": "BORRAR",
+  "wipeConfirm": "Borrar todo",
+  "wipeDone": "Progreso restaurado: comezas de cero.",
+  "wipeFail": "Non se puido borrar. Téntao de novo."
+ },
+ "en": {
+  "wipeBtn": "Reset progress",
+  "wipeHint": "Deletes all your workouts so you can start over. Your account, photo and settings are not touched.",
+  "wipeTitle": "Delete all your progress?",
+  "wipeText": "{days} days and {ex} exercises will be removed from the server and from this device. This cannot be undone.",
+  "wipeBackup": "Download a backup first (.json)",
+  "wipeType": "To confirm, type {word}",
+  "wipeWord": "DELETE",
+  "wipeConfirm": "Delete everything",
+  "wipeDone": "Progress reset: you start from scratch.",
+  "wipeFail": "Couldn't delete. Please try again."
+ },
+ "pt": {
+  "wipeBtn": "Repor progresso",
+  "wipeHint": "Apaga todos os teus treinos para recomeçares do zero. A tua conta, foto e definições não são alteradas.",
+  "wipeTitle": "Apagar todo o teu progresso?",
+  "wipeText": "Serão eliminados {days} dias e {ex} exercícios, do servidor e deste dispositivo. Não é possível desfazer.",
+  "wipeBackup": "Descarregar cópia antes (.json)",
+  "wipeType": "Para confirmar, escreve {word}",
+  "wipeWord": "APAGAR",
+  "wipeConfirm": "Apagar tudo",
+  "wipeDone": "Progresso reposto: recomeças do zero.",
+  "wipeFail": "Não foi possível apagar. Tenta novamente."
+ },
+ "it": {
+  "wipeBtn": "Ripristina progressi",
+  "wipeHint": "Elimina tutti i tuoi allenamenti per ricominciare da zero. Account, foto e impostazioni non vengono toccati.",
+  "wipeTitle": "Eliminare tutti i tuoi progressi?",
+  "wipeText": "Verranno eliminati {days} giorni e {ex} esercizi, dal server e da questo dispositivo. Non si può annullare.",
+  "wipeBackup": "Scarica prima una copia (.json)",
+  "wipeType": "Per confermare, scrivi {word}",
+  "wipeWord": "ELIMINA",
+  "wipeConfirm": "Elimina tutto",
+  "wipeDone": "Progressi ripristinati: si riparte da zero.",
+  "wipeFail": "Impossibile eliminare. Riprova."
+ },
+ "fr": {
+  "wipeBtn": "Réinitialiser la progression",
+  "wipeHint": "Supprime tous vos entraînements pour repartir de zéro. Votre compte, votre photo et vos réglages ne sont pas modifiés.",
+  "wipeTitle": "Supprimer toute votre progression ?",
+  "wipeText": "{days} jours et {ex} exercices seront supprimés du serveur et de cet appareil. Action irréversible.",
+  "wipeBackup": "Télécharger une sauvegarde avant (.json)",
+  "wipeType": "Pour confirmer, tapez {word}",
+  "wipeWord": "SUPPRIMER",
+  "wipeConfirm": "Tout supprimer",
+  "wipeDone": "Progression réinitialisée : vous repartez de zéro.",
+  "wipeFail": "Suppression impossible. Réessayez."
+ },
+ "de": {
+  "wipeBtn": "Fortschritt zurücksetzen",
+  "wipeHint": "Löscht alle deine Trainings, damit du neu anfangen kannst. Konto, Foto und Einstellungen bleiben unverändert.",
+  "wipeTitle": "Gesamten Fortschritt löschen?",
+  "wipeText": "{days} Tage und {ex} Übungen werden vom Server und von diesem Gerät gelöscht. Das lässt sich nicht rückgängig machen.",
+  "wipeBackup": "Vorher Sicherung herunterladen (.json)",
+  "wipeType": "Zur Bestätigung tippe {word}",
+  "wipeWord": "LÖSCHEN",
+  "wipeConfirm": "Alles löschen",
+  "wipeDone": "Fortschritt zurückgesetzt: du fängst bei null an.",
+  "wipeFail": "Löschen nicht möglich. Bitte erneut versuchen."
+ }
+};
+for (const l in X3) Object.assign(T[l], X3[l]);
+
 let current = 'es';
 export function setLang(l) { current = T[l] ? l : 'es'; document.documentElement.lang = current; }
 export function getLang() { return current; }

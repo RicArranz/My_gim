@@ -56,8 +56,8 @@ const A = 'http://localhost:8130/', JSON_FILE = path.join(ROOT, 'importar/entren
   const txt = execFileSync('pdftotext', ['-layout', pdf, '-'], { encoding: 'utf8' });
   ok(['Sentadilla', 'Tríceps', 'Jalón al pecho', 'Lunges máquina', 'Lunes 22/06/26', 'Sábado 10/10/26', 'Barra 20 kg + 10 kg', '4 x 12 @ 16 kg'].every(s => txt.includes(s)), 'el texto del PDF contiene ejercicios, fechas, notas y series con tildes');
   ok(!/[�]/.test(txt), 'sin caracteres rotos');
-  const info = execFileSync('python3', ['-I', '-c', 'import sys,pypdf;r=pypdf.PdfReader(sys.argv[1]);print(len(r.pages), r.pages[0].mediabox.width)', pdf], { encoding: 'utf8' }).trim();
-  ok(/^\d+ 595/.test(info), 'pypdf abre el PDF (páginas y ancho A4): ' + info);
+  const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' }), pages = +(info.match(/Pages:\s+(\d+)/) || [])[1];
+  ok(pages >= 1 && /595\.\d+ x 841\.\d+ pts \(A4\)/.test(info), 'pdfinfo abre el PDF (páginas y tamaño A4): ' + pages + ' páginas')
   fs.copyFileSync(pdf, '/tmp/mygim_shots/export.pdf');
   // rango: solo octubre
   await P.fill('#xf', '2026-10-01'); const pdf2 = await dl('#xpdf'); const txt2 = execFileSync('pdftotext', [pdf2, '-'], { encoding: 'utf8' });
@@ -82,6 +82,25 @@ const A = 'http://localhost:8130/', JSON_FILE = path.join(ROOT, 'importar/entren
   await go(L, '#/'); await L.waitForSelector('#dd'); await L.fill('#dd', '2026-07-11'); ok((await L.locator('main').innerText()).includes('30 kg × 10'), 'sentadilla del 11/07 = 30 kg (barra de 20 kg + 10)');
   // el selector de archivos no restringe tipos (en Android/iOS algunos .json/.csv aparecían deshabilitados)
   await go(L, '#/files'); await L.waitForSelector('#imp', { state: 'attached' }); ok((await L.locator('#imp').getAttribute('accept')) === null, 'selector de archivos sin filtro de tipo');
+
+  /* ---- Restaurar progreso ---- */
+  await go(L, '#/'); await L.waitForSelector('#add'); await L.fill('#dd', '2026-10-20'); await L.click('#add'); await L.fill('#fn', 'Pendiente'); await L.locator('.setrow input').nth(1).fill('5'); await L.click('#fs');   // un día sin guardar también cuenta
+  await go(L, '#/progress'); await L.waitForSelector('#wipe'); await L.click('#wipe'); await L.waitForSelector('#wt');
+  const wtxt = await L.locator('.overlay').innerText(); ok(/25 días y 72 ejercicios/.test(wtxt), 'restaurar: avisa de lo que se borra (' + (wtxt.match(/\d+ días y \d+ ejercicios/) || [''])[0] + ')');
+  ok(await L.locator('[data-a=ok]').isDisabled(), 'restaurar: «Borrar todo» desactivado hasta escribir la palabra');
+  await L.fill('#wt', 'borra'); ok(await L.locator('[data-a=ok]').isDisabled(), 'restaurar: una palabra incorrecta no lo activa');
+  const [bk] = await Promise.all([L.waitForEvent('download'), L.click('[data-a=bk]')]); const bkf = path.join(TMP, bk.suggestedFilename()); await bk.saveAs(bkf);
+  ok(/^my-gim-copia-\d{8}\.json$/.test(bk.suggestedFilename()) && Object.keys(JSON.parse(fs.readFileSync(bkf, 'utf8')).days).length === 25, 'restaurar: ofrece descargar una copia antes (25 días)');
+  await L.click('[data-a=no]'); await L.waitForSelector('.kpis'); ok(true, 'cancelar no borra nada');
+  await L.click('#wipe'); await L.fill('#wt', ' borrar '); ok(!(await L.locator('[data-a=ok]').isDisabled()), 'restaurar: «borrar» en minúsculas activa el botón');
+  await L.screenshot({ path: '/tmp/mygim_shots/wipe.png' });
+  await L.click('[data-a=ok]'); await L.waitForSelector('.empty'); ok(await L.locator('.kpis').count() === 0 && await L.locator('.toast').count() === 1, 'restaurar: progreso vacío y aviso');
+  const left = await L.evaluate(async () => { const r = await fetch('/api/days', { method: 'POST', headers: { Authorization: 'Bearer ' + localStorage.getItem('mg_token') } }); return Object.keys((await r.json()).days).length; });
+  ok(left === 0, 'restaurar: el servidor ya no tiene ningún día');
+  await L.reload(); await L.waitForSelector('#view'); await go(L, '#/progress'); await L.waitForSelector('.empty'); ok(true, 'restaurar: sigue vacío tras recargar');
+  await go(L, '#/'); await L.waitForSelector('#dd'); await L.fill('#dd', '2026-10-20'); ok(await L.locator('.ex').count() === 0 && await L.locator('.status.pend').count() === 0, 'restaurar: también se borra lo que estaba sin guardar');
+  await go(L, '#/files'); await L.setInputFiles('#imp', JSON_FILE); await L.waitForSelector('.overlay'); ok((await L.locator('.overlay').innerText()).includes('24 días') && !(await L.locator('.overlay').innerText()).includes('ya tienen datos'), 'se puede volver a importar tras restaurar (nada que reemplazar)');
+  await L.click('[data-a=no]');
 
   /* ---- Arranque: abre al instante con la copia y no se cuelga ---- */
   const F = await mk(); await F.goto(A); await F.waitForSelector('.auth'); await F.waitForSelector('#splash', { state: 'detached' });

@@ -96,6 +96,10 @@ const ok = (c, m) => { console.log((c ? 'OK   ' : 'FALLO ') + m); if (!c) proces
   // aviso de días sin guardar
   await page.click('#dp'); await page.click('#add'); await page.fill('#fn', 'Gemelos'); await page.locator('.setrow input').nth(1).fill('15'); await page.click('#fs'); await page.click('#dn');
   ok(await page.locator('#unsaved').count() === 1, 'aviso de días sin guardar');
+  // restaurar progreso (modo local)
+  await page.evaluate(() => { location.hash = '#/progress'; }); await page.waitForSelector('#wipe'); await page.click('#wipe'); await page.waitForSelector('#wt');
+  await page.fill('#wt', 'BORRAR'); await page.click('[data-a=ok]'); await page.waitForSelector('.empty');
+  ok(await page.evaluate(() => !Object.keys(localStorage).some(k => k.startsWith('mg_local_data_') && JSON.parse(localStorage.getItem(k)).length)), 'restaurar progreso (modo local): no queda ningún entrenamiento');
   // sin scroll horizontal
   ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'sin scroll horizontal (390px)');
   // service worker

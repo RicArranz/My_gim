@@ -112,6 +112,11 @@ const actions = {
     return { ok: true };
   },
 
+  // Restaurar progreso: borra TODOS los entrenamientos de la cuenta (la cuenta, la foto y los ajustes no se tocan).
+  async 'reset-progress'(req) {
+    const u = await authed(req); await L.redis('DEL', 'days:' + u.id); return { ok: true };
+  },
+
   // Importación masiva: {days:{'2026-06-22':[{name,sets:[{weight,reps}],note}], ...}}. Cada día del archivo REEMPLAZA al que hubiera.
   async 'import-days'(req, b) {
     const u = await authed(req); const days = b.days;

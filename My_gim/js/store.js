@@ -133,6 +133,10 @@ export async function importDays(userId, days) {
   for (const day of keys) days[day].forEach((i, n) => { exercises++; all.push({ id: uid(), day, position: n, name: i.name, sets: i.sets, note: i.note || '' }); });
   W('mg_local_data_' + userId, all); return { ok: true, days: keys.length, exercises };
 }
+export async function resetAll(userId) {
+  if (isRemote) { await api('reset-progress'); return; }
+  localStorage.removeItem('mg_local_data_' + userId);
+}
 export async function saveDay(userId, day, items) {
   if (isRemote) { await api('save-day', { day, items: items.map(i => ({ id: i.id, name: i.name, sets: i.sets, note: i.note || '' })) }); return; }
   const all = J('mg_local_data_' + userId, []).filter(r => r.day !== day);
