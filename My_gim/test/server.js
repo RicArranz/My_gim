@@ -12,6 +12,7 @@ function cmd([c, k, ...a]) {
   if (c === 'INCR') { const n = (alive(k) ? +kv.get(k) : 0) + 1; kv.set(k, String(n)); return n; }
   if (c === 'EXPIRE') { exp.set(k, Date.now() + a[0] * 1000); return 1; }
   if (c === 'HSET') { const h = alive(k) ? kv.get(k) : {}; for (let i = 0; i < a.length; i += 2) h[a[i]] = a[i + 1]; kv.set(k, h); return a.length / 2; }
+  if (c === 'HGET') return (alive(k) ? kv.get(k) : {})[a[0]] ?? null;
   if (c === 'HLEN') return Object.keys(alive(k) ? kv.get(k) : {}).length;
   if (c === 'HDEL') { const h = kv.get(k) || {}; a.forEach(f => delete h[f]); return a.length; }
   if (c === 'HGETALL') return Object.entries(alive(k) ? kv.get(k) : {}).flat();
@@ -20,10 +21,15 @@ function cmd([c, k, ...a]) {
 http.createServer((q, s) => { let b = ''; q.on('data', d => b += d); q.on('end', () => {
   s.setHeader('Content-Type', 'application/json');
   if (q.url === '/redis') { try { s.end(JSON.stringify({ result: cmd(JSON.parse(b)) })); } catch (e) { s.end(JSON.stringify({ error: e.message })); } }
-  else if (q.url === '/mail') { mails.push(JSON.parse(b)); s.end('{"id":"1"}'); }
+  else if (q.url === '/mail') { mails.push({ ...JSON.parse(b), _h: { authorization: q.headers.authorization, 'api-key': q.headers['api-key'] } }); s.end('{"id":"1"}'); }
   else { s.end(JSON.stringify(mails)); }
 }); }).listen(process.env.REDIS_PORT || 8124);
-if (!process.env.NO_CONFIG) Object.assign(process.env, { KV_REST_API_URL: `http://localhost:${process.env.REDIS_PORT || 8124}/redis`, KV_REST_API_TOKEN: 't', AUTH_SECRET: 'test-secret', RESEND_API_KEY: 'k', RESEND_API_URL: `http://localhost:${process.env.REDIS_PORT || 8124}/mail` });
+const defaults = process.env.NO_CONFIG ? {} : {
+  KV_REST_API_URL: `http://localhost:${process.env.REDIS_PORT || 8124}/redis`, KV_REST_API_TOKEN: 't', AUTH_SECRET: 'test-secret',
+  RESEND_API_KEY: 'k', RESEND_API_URL: `http://localhost:${process.env.REDIS_PORT || 8124}/mail`,
+  BREVO_API_URL: `http://localhost:${process.env.REDIS_PORT || 8124}/mail`, RL_SIGNUP_MAX: '1000', RL_LOGIN_IP_MAX: '1000'
+};
+for (const [k, v] of Object.entries(defaults)) if (process.env[k] === undefined) process.env[k] = v;   // lo que ya venga del entorno manda
 const handler = require('../api/[action].js');
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 http.createServer((q, s) => {

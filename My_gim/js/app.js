@@ -24,7 +24,7 @@ const ICON = {
 /* ---------- Estado ---------- */
 const S = {
   user: null, db: [], dirty: {}, date: todayISO(), form: null,
-  prefs: J('mg_prefs', {}), progress: { tab: 'day', date: todayISO(), exKey: '', metric: 'max' }, authView: null, loadErr: false
+  prefs: J('mg_prefs', {}), progress: { tab: 'day', date: todayISO(), exKey: '', metric: 'max' }, authView: null, loadErr: false, conflicts: new Set()
 };
 let deferredPrompt = null, booted = false;
 
@@ -69,16 +69,48 @@ function allItems() {
   for (const d in S.dirty) S.dirty[d].forEach(i => out.push({ ...i, day: d }));
   return out;
 }
-function setDay(day, items) { S.dirty[day] = items; persistDirty(); }
+function setDay(day, items) { S.dirty[day] = items; persistDirty(); scheduleSync(); }
+let lastLoad = 0;
 // Carga los datos del servidor. Si falla, usa la copia del dispositivo y lo avisa (S.loadErr) en vez de mostrar «cero entrenos» sin explicación.
 async function loadData() {
-  S.dirty = J(kDirty(), {});
-  try { S.db = await store.fetchAll(S.user.id); W(kCache(), S.db); S.loadErr = false; }
+  try { S.db = await store.fetchAll(S.user.id); W(kCache(), S.db); S.loadErr = false; lastLoad = Date.now(); }
   catch (e) {
     S.db = J(kCache(), []); S.loadErr = true;
     if (e && e.status === 401) await expireSession();
   }
 }
+
+/* ---------- Copia automática en la nube ---------- */
+// Los días con cambios (S.dirty) se envían solos unos segundos después del último cambio, al salir de la app y al volver la conexión.
+// El botón «Guardar entrenamiento del día» sigue funcionando igual. Si el día cambió en otro dispositivo NO se pisa: queda pendiente y avisa al guardar a mano.
+const autosyncOn = () => store.isRemote && S.prefs.autosync !== false;
+const syncDelay = () => Number(localStorage.getItem('mg_sync_ms')) || 20000;
+let syncTimer = null, syncing = false;
+function scheduleSync(ms) { clearTimeout(syncTimer); if (autosyncOn() && Object.keys(S.dirty).length) syncTimer = setTimeout(syncDirty, ms ?? syncDelay()); }
+async function syncDirty() {
+  if (syncing || !S.user || !autosyncOn() || navigator.onLine === false) return;
+  const days = Object.keys(S.dirty).filter(d => !S.conflicts.has(d)).sort(); if (!days.length) return;
+  syncing = true; let saved = 0, retry = false;
+  try {
+    for (const day of days) {
+      const snap = S.dirty[day]; if (!snap) continue;
+      try { await store.saveDay(S.user.id, day, snap); if (S.dirty[day] === snap) delete S.dirty[day]; saved++; }
+      catch (e) { if (e && e.status === 409) { S.conflicts.add(day); continue; } if (e && e.status === 401) { await expireSession(); return; } retry = true; break; }
+    }
+    persistDirty();
+    if (saved) { S.db = await store.fetchAll(S.user.id); W(kCache(), S.db); S.loadErr = false; lastLoad = Date.now(); }
+  } catch { retry = true; }
+  finally { syncing = false; }
+  if (retry) scheduleSync(60000);
+  if (saved && S.user && !S.form && !document.querySelector('.overlay') && /^#?\/?$/.test(location.hash)) route(true);
+}
+window.addEventListener('online', () => syncDirty());
+document.addEventListener('visibilitychange', () => {
+  if (!S.user) return;
+  if (document.hidden) { syncDirty(); return; }
+  // al volver a la app: traer lo que se haya guardado desde otro dispositivo (sin pisar días con cambios sin guardar)
+  if (store.isRemote && Date.now() - lastLoad > 15000 && !S.form && !document.querySelector('.overlay')) loadData().then(() => { if (S.user && !S.form && !document.querySelector('.overlay')) route(true); });
+});
 async function expireSession() {
   if (!S.user) return;
   await store.signOut(); S.user = null; S.authView = 'login'; renderAuth(); toast(t('sessionExpired'));
@@ -168,8 +200,11 @@ async function enter(user, { fast = false } = {}) {
   if (user.prefs && Object.keys(user.prefs).length) S.prefs = { ...S.prefs, ...user.prefs };
   applyPrefs();
   localStorage.setItem('mg_lastuser', JSON.stringify({ email: user.email, name: user.name }));
-  if (fast) { S.dirty = J(kDirty(), {}); S.db = J(kCache(), []); S.loadErr = false; }
+  S.dirty = J(kDirty(), {}); S.conflicts = new Set(); store.loadRevs(user.id);
+  if (fast) { S.db = J(kCache(), []); S.loadErr = false; }
   else { await loadData(); if (!S.user) return; }
+  scheduleSync(3000);                                   // por si quedaron días sin enviar de otra vez
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch { /* opcional: pide al navegador no borrar los datos del dispositivo */ }
   S.date = todayISO(); S.form = null;
   renderShell(); route();
   if (fast) refresh();
@@ -262,7 +297,7 @@ function bindAuth(v, last) {
 function errText(err) {
   const m = String(err?.message || err);
   if (m === 'fields') return t('errFields'); if (m === 'short') return t('errShort'); if (m === 'exists' || /already/i.test(m)) return t('errExists');
-  if (m === 'creds' || /invalid login/i.test(m)) return t('errCreds'); if (m === 'rate') return t('errRate'); if (m === 'token') return t('errToken'); if (m === 'local') return 'Modo local: no hay correo.';
+  if (m === 'creds' || /invalid login/i.test(m)) return t('errCreds'); if (m === 'rate') return t('errRate'); if (m === 'token') return t('errToken'); if (m === 'mailconfig') return t('errMailConfig'); if (m === 'mail') return t('errMail'); if (m === 'local') return 'Modo local: no hay correo.';
   if (/fetch|network/i.test(m)) return t('errOffline'); return t('errGeneric');
 }
 
@@ -330,7 +365,7 @@ function viewWorkout() {
     ${items.length ? items.map((it, i) => exCard(it, i)).join('') : `<div class="empty">${t('noExercises')}</div>`}
     <button class="btn ${items.length ? 'ghost' : ''} block" id="add">+ ${t('newExercise')}</button></div>
     <div class="savebar"><div><button class="btn block" id="saveday" ${items.length || pend ? '' : 'disabled'}>${t('saveDay')}</button>
-    <div class="status ${pend ? 'pend' : (items.length ? 'done' : '')}">${pend ? t('dayPending') : (items.length ? '✓ ' + t('daySavedAt') : '')}</div></div></div>`;
+    <div class="status ${pend ? 'pend' : (items.length ? 'done' : '')}">${pend ? (autosyncOn() && !S.conflicts.has(day) ? t('dayPendingAuto') : t('dayPending')) : (items.length ? '✓ ' + t('daySavedAt') : '')}</div></div></div>`;
   $('#dp').onclick = () => { S.date = addDays(day, -1); viewWorkout(); };
   $('#dn').onclick = () => { S.date = addDays(day, 1); viewWorkout(); };
   $('#dd').onchange = e => { if (e.target.value) { S.date = e.target.value; viewWorkout(); } };
@@ -350,13 +385,28 @@ function exCard(it, i) {
 }
 async function saveDay() {
   const day = S.date, btn = $('#saveday'); btn.disabled = true; btn.textContent = t('saving');
+  const items = dayItems(day);
   try {
-    await store.saveDay(S.user.id, day, dayItems(day));
-    delete S.dirty[day]; persistDirty();
+    try { await store.saveDay(S.user.id, day, items); }
+    catch (e) {
+      if (!(e && e.status === 409)) throw e;
+      const choice = await askConflict(items, e.data && e.data.items || []);      // el día cambió en otro dispositivo
+      if (choice === 'mine') await store.saveDay(S.user.id, day, items, { force: true });
+      else if (choice !== 'server') { if (S.user) viewWorkout(); return; }
+    }
+    delete S.dirty[day]; S.conflicts.delete(day); persistDirty();
     S.db = await store.fetchAll(S.user.id); W(kCache(), S.db);
     toast('✓ ' + t('daySaved'));
-  } catch { toast(t('saveError')); }
+  } catch (e) { if (e && e.status === 401) return expireSession(); toast(t('saveError')); }
   if (S.user) viewWorkout();
+}
+function askConflict(mine, server) {
+  return new Promise(res => {
+    const o = modal(`<h2>${t('conflictTitle')}</h2><p style="margin:0">${t('conflictText', { server: server.length, mine: mine.length })}</p>
+      <button class="btn" data-a="server">${t('conflictServer')}</button><button class="btn ghost" data-a="mine">${t('conflictMine')}</button>
+      <button class="btn link" data-a="no">${t('cancel')}</button>`);
+    o.onclick = e => { const x = e.target.dataset.a; if (!x) return; closeModal(o); res(x === 'no' ? null : x); };
+  });
 }
 
 /* Formulario de ejercicio (hoja inferior). Se autoguarda como borrador. */
@@ -657,10 +707,13 @@ function viewSettings() {
       <label class="f">${t('name')}<input type="text" id="pn" value="${esc(u.name)}"></label>
       <label class="f">${t('surname')}<input type="text" id="ps" value="${esc(u.surname)}"></label>
       <label class="f">${t('email')}<input type="email" id="pe" value="${esc(u.email)}"></label>
+      <label class="f hidden" id="pcw">${t('currentPassword')}<input type="password" id="pcur" autocomplete="current-password"></label>
       <div class="msg hidden" id="pm"></div><button class="btn" id="psave">${t('save')}</button></div>
     <div class="card stack"><h2>${t('appearance')}</h2>
       <div class="tabs">${[['light', 'light'], ['dark', 'dark'], ['auto', 'auto']].map(([k, l]) => `<button data-mode="${k}" class="${(p.mode || 'auto') === k ? 'on' : ''}">${t(l)}</button>`).join('')}</div>
       <div class="muted">${t('colors')}</div><div class="seg">${ACCENTS.map(([k, c]) => `<button class="swatch ${(p.accent || 'neutral') === k ? 'on' : ''}" data-accent="${k}" style="background:${c}" aria-label="${k}"></button>`).join('')}</div></div>
+    ${store.isRemote ? `<div class="card stack"><h2>${t('autosyncTitle')}</h2><p class="muted" style="margin:0">${t('autosyncHint')}</p>
+      <div class="tabs">${[[true, 'on'], [false, 'off']].map(([v, l]) => `<button data-autosync="${v}" class="${(p.autosync !== false) === v ? 'on' : ''}">${t(l)}</button>`).join('')}</div></div>` : ''}
     <div class="card stack"><h2>${t('language')}</h2><select id="lang">${Object.entries(LANGS).map(([k, n]) => `<option value="${k}" ${getLang() === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
     <div class="card stack"><h2>${t('account')}</h2>
       <label class="f">${t('newPassword')}<input type="password" id="np" autocomplete="new-password"></label>
@@ -668,13 +721,16 @@ function viewSettings() {
       ${canInstall() ? `<button class="btn ghost" id="inst2">${t('install')}</button>` : ''}</div></div>`;
   document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setPref({ mode: b.dataset.mode }));
   document.querySelectorAll('[data-accent]').forEach(b => b.onclick = () => setPref({ accent: b.dataset.accent }));
+  document.querySelectorAll('[data-autosync]').forEach(b => b.onclick = () => setPref({ autosync: b.dataset.autosync === 'true' }).then(() => scheduleSync(3000)));
+  $('#pe').oninput = () => $('#pcw').classList.toggle('hidden', $('#pe').value.trim().toLowerCase() === u.email);   // cambiar el correo pide la contraseña
   $('#lang').onchange = e => setPref({ lang: e.target.value }).then(() => renderShell() || route());
   const i2 = $('#inst2'); if (i2) i2.onclick = doInstall;
   const pm = $('#pm'), say = (el, txt, ok) => { el.textContent = txt; el.className = 'msg ' + (ok ? 'ok' : 'err'); };
   $('#psave').onclick = async () => {
     const patch = { name: $('#pn').value.trim(), surname: $('#ps').value.trim(), email: $('#pe').value.trim() };
     if (!patch.name || !patch.email) return say(pm, t('errFields'), false);
-        try { await store.updateProfile(u, patch); Object.assign(u, patch, { email: patch.email.toLowerCase() });
+    if (patch.email.toLowerCase() !== u.email) { patch.currentPassword = $('#pcur').value; if (!patch.currentPassword) return say(pm, t('needPasswordEmail'), false); }
+    try { await store.updateProfile(u, patch); delete patch.currentPassword; Object.assign(u, patch, { email: patch.email.toLowerCase() });
       localStorage.setItem('mg_lastuser', JSON.stringify({ email: u.email, name: u.name })); say(pm, t('saved'), true); renderMenu(); }
     catch (e) { say(pm, errText(e), false); }
   };

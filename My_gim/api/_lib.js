@@ -45,14 +45,32 @@ async function getUserByEmail(email) { const id = await redis('GET', 'email:' + 
 const saveUser = u => redis('SET', 'user:' + u.id, JSON.stringify(u));
 const publicUser = u => ({ id: u.id, email: u.email, name: u.name, surname: u.surname, avatar: u.avatar || '', prefs: u.prefs || {} });
 
+const mailFail = (status, code) => Object.assign(new Error(code), { status });
+const mailProvider = () => (process.env.BREVO_API_KEY ? 'brevo' : process.env.RESEND_API_KEY ? 'resend' : null);
+const mailConfigured = () => !!mailProvider();
+function parseFrom(s) {
+  const m = String(s || '').match(/^\s*"?(.*?)"?\s*<([^>]+)>\s*$/);
+  return m ? { name: m[1] || 'My Gim', email: m[2].trim() } : { name: 'My Gim', email: String(s || '').trim() };
+}
+// Envío con el proveedor que haya configurado: Brevo (BREVO_API_KEY + MAIL_FROM verificado) o Resend (RESEND_API_KEY).
 async function sendMail(to, subject, html) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) throw Object.assign(new Error('mail'), { status: 503 });
-  const r = await fetch(process.env.RESEND_API_URL || 'https://api.resend.com/emails', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: process.env.MAIL_FROM || 'My Gim <onboarding@resend.dev>', to: [to], subject, html })
-  });
-  if (!r.ok) throw Object.assign(new Error('mail'), { status: 502 });
+  const p = mailProvider(); if (!p) throw mailFail(503, 'mailconfig');
+  let r;
+  try {
+    if (p === 'brevo') {
+      const from = parseFrom(process.env.MAIL_FROM); if (!from.email) throw mailFail(503, 'mailconfig');
+      r = await fetch(process.env.BREVO_API_URL || 'https://api.brevo.com/v3/smtp/email', {
+        method: 'POST', headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ sender: from, to: [{ email: to }], subject, htmlContent: html })
+      });
+    } else {
+      r = await fetch(process.env.RESEND_API_URL || 'https://api.resend.com/emails', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: process.env.MAIL_FROM || 'My Gim <onboarding@resend.dev>', to: [to], subject, html })
+      });
+    }
+  } catch (e) { if (e.status) throw e; console.error('mail: sin conexión con', p, e.message); throw mailFail(502, 'mail'); }
+  if (!r.ok) { let body = ''; try { body = (await r.text()).slice(0, 300); } catch { /* */ } console.error('mail: rechazado por', p, r.status, body); throw mailFail(502, 'mail'); }
 }
 
-module.exports = { redis, configured, missingEnv, makeToken, readToken, hashPw, checkPw, normEmail, validEmail, clip, getUserById, getUserByEmail, saveUser, publicUser, sendMail };
+module.exports = { redis, configured, missingEnv, makeToken, readToken, hashPw, checkPw, normEmail, validEmail, clip, getUserById, getUserByEmail, saveUser, publicUser, sendMail, mailConfigured, mailProvider };

@@ -18,6 +18,26 @@ Los datos viven en una base de datos **Redis (Upstash)** conectada a tu proyecto
 
 La cuenta se puede usar en cualquier dispositivo: los entrenos guardados con «Guardar entrenamiento del día» aparecen en todos.
 
+
+## Publicar sin filtrar datos privados
+- **No subas la carpeta `My_gim` entera.** Contiene `importar/` (datos de Lorena), `tools/` y `test/`, que no deben publicarse (Vercel sirve como archivos públicos todo lo que haya en el repositorio, aunque exista `.vercelignore`).
+- Ejecuta `bash tools/empaquetar.sh`: crea `/root/My_gim_subir` (y `.zip`) con **solo** lo necesario (`index.html`, `sw.js`, `manifest`, `vercel.json`, `package.json`, `css/`, `js/`, `icons/`, `api/`) y comprueba que no hay datos privados. Sube el contenido de esa carpeta a GitHub.
+- `vercel.json` además redirige `/importar/`, `/tools/` y `/test/` a la portada por si algún día se cuelan.
+- Comprobación tras desplegar: `curl -I https://TU-APP.vercel.app/importar/entrenos-lorena.json` debe devolver 307/404, nunca 200.
+
+## Correo de recuperar contraseña
+Variables de Vercel (basta una de las dos opciones):
+- **Brevo:** `BREVO_API_KEY` + `MAIL_FROM` (remitente verificado en Brevo, p. ej. `My Gim <avisos@cip-formacion.com>`). 300 correos/día gratis, sin límite de destinatarios.
+- **Resend:** `RESEND_API_KEY` (+ `MAIL_FROM` si hay dominio verificado). 100/día y 3000/mes gratis; **sin dominio verificado solo envía a la dirección de la cuenta de Resend**.
+- `GET /api/ping` indica `"mail": true|false`. Si falta el proveedor, la app dice «El envío de correos no está configurado».
+- **Sin correo (recuperación manual):** Upstash → Data Browser → `email:<correo>` → copia el valor (id) → `node tools/enlace-recuperacion.mjs <id> https://tu-app.vercel.app` → pega en Upstash → CLI la línea `SET reset:…` que imprime y envía el enlace (1 hora, un solo uso).
+
+## Seguridad y varios dispositivos
+- Límites: 5 registros por hora y por IP, 60 intentos de login por IP cada 10 min, 10 por correo cada 10 min, 5 «olvidé contraseña» por correo/hora. Cambiar el correo exige la contraseña actual.
+- **Copia automática** (Opciones, activada por defecto con servidor): los días con cambios se envían solos ~20 s después del último cambio, al salir de la app y al recuperar la conexión. Se puede desactivar.
+- **Conflictos:** cada día lleva una versión; si otro dispositivo lo cambió, la app avisa y deja elegir entre la del servidor y la de este dispositivo. Al volver a la app se traen los cambios de otros dispositivos.
+- Límites de los planes gratuitos (revisar en cada web): Upstash 256 MB y 500 000 comandos/mes; Vercel Hobby uso no comercial; Resend 100/día; Brevo 300/día.
+
 ## Cómo funciona
 
 - Cada ejercicio se guarda al instante **en el dispositivo**; «Guardar entrenamiento del día» lo envía a la base de datos (copia de seguridad). Los días con cambios sin enviar se avisan en rojo.
@@ -42,6 +62,7 @@ La cuenta se puede usar en cualquier dispositivo: los entrenos guardados con «G
 ```
 node test/server.js        # estáticos + API real con Redis y correo simulados → http://localhost:8123
 node test/remoto.js        # registro, guardar, otro dispositivo, recuperar contraseña
+node test/seguridad.js     # límites, correo (Brevo/Resend/sin configurar), conflictos, copia automática, PDF y 6 tamaños de pantalla (4 servidores propios)
 node test/archivos.js      # importar/exportar (PDF, JSON, CSV), Lorena, arranque rápido y fallos de carga (levanta sus propios servidores)
 python3 -m http.server 8125 && node test/flujo.js   # modo local, móvil 390px
 ```

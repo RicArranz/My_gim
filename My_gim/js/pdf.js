@@ -7,7 +7,12 @@ const HW = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,
   333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
 const CP1252 = { '€': 0x80, '…': 0x85, '‘': 0x91, '’': 0x92, '“': 0x93, '”': 0x94, '•': 0x95, '–': 0x96, '—': 0x97, '→': 0x2D };
 
+// Letras latinas fuera de Latin-1 que no se descomponen con NFD
+const FOLD = { 'ł': 'l', 'Ł': 'L', 'đ': 'd', 'Đ': 'D', 'ı': 'i', 'ø': 'o', 'Ø': 'O', 'œ': 'oe', 'Œ': 'OE', 'ħ': 'h', 'ŧ': 't', 'ð': 'd', 'þ': 'th', 'ə': 'e' };
+const strip = ch => ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
 // Texto → cadena "latin1" (cada carácter = 1 byte) válida para WinAnsiEncoding.
+// Lo que Helvetica no puede dibujar se transcribe (Łódź → Lodz, č → c); alfabetos no latinos (cirílico, griego, chino…) salen como «?».
 function enc(s) {
   let o = '';
   for (const ch of String(s).normalize('NFC')) {
@@ -15,7 +20,8 @@ function enc(s) {
     if (/\s/.test(ch)) o += ' ';
     else if (c < 256) o += ch;
     else if (CP1252[ch] != null) o += String.fromCharCode(CP1252[ch]);
-    else o += '?';
+    else if (FOLD[ch]) o += FOLD[ch];
+    else { const b = strip(ch); o += b && b.codePointAt(0) < 256 && b !== ch ? b : '?'; }
   }
   return o;
 }

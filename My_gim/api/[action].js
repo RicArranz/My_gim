@@ -12,6 +12,11 @@ const cleanItems = items => (Array.isArray(items) ? items : []).slice(0, 100).ma
 })).filter(i => i.name && i.sets.length);
 const validDay = d => /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(Date.parse(d));
 
+const sha1 = s => (s ? crypto.createHash('sha1').update(s).digest('hex').slice(0, 12) : '');   // «versión» de un día: detecta cambios hechos desde otro dispositivo
+const clientIp = req => String(req.headers['x-real-ip'] || (req.headers['x-forwarded-for'] || '').split(',')[0] || (req.socket && req.socket.remoteAddress) || 'unknown').trim();
+const ipKey = (what, req) => `rl:ip:${what}:` + crypto.createHash('sha256').update(clientIp(req)).digest('hex').slice(0, 16);   // la IP no se guarda en claro
+const num = (v, d) => (Number(v) > 0 ? Number(v) : d);
+
 async function limit(key, max, secs) {
   const n = await L.redis('INCR', key);
   if (n === 1) await L.redis('EXPIRE', key, secs);
@@ -24,12 +29,13 @@ const authed = async req => {
 const origin = req => process.env.APP_URL || `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers['x-forwarded-host'] || req.headers.host}`;
 
 const actions = {
-  async ping() { return { ok: true, configured: L.configured(), missing: L.missingEnv() }; },
+  async ping() { return { ok: true, configured: L.configured(), missing: L.missingEnv(), mail: L.mailConfigured() }; },
 
   async signup(req, b) {
     const email = L.normEmail(b.email), name = L.clip(b.name, 60), surname = L.clip(b.surname, 80), pw = String(b.password || '');
     if (!L.validEmail(email) || !name) throw fail(400, 'fields');
     if (pw.length < 6 || pw.length > 200) throw fail(400, 'short');
+    await limit(ipKey('signup', req), num(process.env.RL_SIGNUP_MAX, 5), 3600);      // máx. 5 cuentas nuevas por hora y por IP
     const id = crypto.randomUUID();
     // SET NX reserva el correo de forma atómica (evita cuentas duplicadas)
     if (await L.redis('SET', 'email:' + email, id, 'NX') !== 'OK') throw fail(409, 'exists');
@@ -41,6 +47,7 @@ const actions = {
 
   async login(req, b) {
     const email = L.normEmail(b.email);
+    await limit(ipKey('login', req), num(process.env.RL_LOGIN_IP_MAX, 60), 600);     // frena también a quien prueba muchos correos desde una IP
     await limit('rl:login:' + email, 10, 600);
     const u = await L.getUserByEmail(email);
     if (!u || !await L.checkPw(String(b.password || ''), u)) throw fail(401, 'creds');
@@ -54,7 +61,7 @@ const actions = {
     if ('name' in b) { u.name = L.clip(b.name, 60); if (!u.name) throw fail(400, 'fields'); }
     if ('surname' in b) u.surname = L.clip(b.surname, 80);
     if ('prefs' in b && b.prefs && typeof b.prefs === 'object') {
-      const p = b.prefs; u.prefs = { lang: L.clip(p.lang, 5), mode: L.clip(p.mode, 6), accent: L.clip(p.accent, 10) };
+      const p = b.prefs; u.prefs = { lang: L.clip(p.lang, 5), mode: L.clip(p.mode, 6), accent: L.clip(p.accent, 10), autosync: p.autosync !== false };
     }
     if ('avatar' in b) {
       const a = String(b.avatar || ''); if (a && (!a.startsWith('data:image/') || a.length > MAX_AVATAR)) throw fail(400, 'avatar');
@@ -62,6 +69,9 @@ const actions = {
     }
     if (b.email && L.normEmail(b.email) !== u.email) {
       const email = L.normEmail(b.email); if (!L.validEmail(email)) throw fail(400, 'fields');
+      // cambiar el correo = cambiar la llave de la cuenta: exige la contraseña actual (y limita los intentos)
+      await limit('rl:pw:' + u.id, 10, 600);
+      if (!await L.checkPw(String(b.currentPassword || ''), u)) throw fail(401, 'creds');
       if (await L.redis('SET', 'email:' + email, u.id, 'NX') !== 'OK') throw fail(409, 'exists');
       await L.redis('DEL', 'email:' + u.email); u.email = email;
     }
@@ -77,6 +87,8 @@ const actions = {
   async forgot(req, b) {
     const email = L.normEmail(b.email);
     if (!L.validEmail(email)) throw fail(400, 'fields');
+    if (!L.mailConfigured()) throw fail(503, 'mailconfig');                           // para todos por igual: no revela qué correos existen
+    await limit(ipKey('forgot', req), num(process.env.RL_FORGOT_IP_MAX, 10), 3600);
     await limit('rl:forgot:' + email, 5, 3600);
     const u = await L.getUserByEmail(email);
     if (u) { // respondemos igual exista o no la cuenta (no revelar qué correos están registrados)
@@ -100,16 +112,21 @@ const actions = {
 
   async days(req) {
     const u = await authed(req); const flat = await L.redis('HGETALL', 'days:' + u.id) || [];
-    const days = {}; for (let i = 0; i < flat.length; i += 2) days[flat[i]] = JSON.parse(flat[i + 1]);
-    return { days };
+    const days = {}, revs = {}; for (let i = 0; i < flat.length; i += 2) { days[flat[i]] = JSON.parse(flat[i + 1]); revs[flat[i]] = sha1(flat[i + 1]); }
+    return { days, revs };
   },
 
+  // base = versión del día que el cliente cargó. Si en el servidor es otra (alguien lo cambió desde otro dispositivo) → 409 con la versión actual.
   async 'save-day'(req, b) {
     const u = await authed(req); const day = String(b.day || '');
     if (!validDay(day) || !Array.isArray(b.items) || b.items.length > 100) throw fail(400, 'fields');
+    const key = 'days:' + u.id, cur = await L.redis('HGET', key, day) || '';
+    if (!b.force && typeof b.base === 'string' && b.base !== sha1(cur)) {
+      throw Object.assign(fail(409, 'conflict'), { extra: { rev: sha1(cur), items: cur ? JSON.parse(cur) : [] } });
+    }
     const items = cleanItems(b.items);
-    if (items.length) await L.redis('HSET', 'days:' + u.id, day, JSON.stringify(items)); else await L.redis('HDEL', 'days:' + u.id, day);
-    return { ok: true };
+    if (items.length) { const json = JSON.stringify(items); await L.redis('HSET', key, day, json); return { ok: true, rev: sha1(json) }; }
+    await L.redis('HDEL', key, day); return { ok: true, rev: '' };
   },
 
   // Restaurar progreso: borra TODOS los entrenamientos de la cuenta (la cuenta, la foto y los ajustes no se tocan).
@@ -144,6 +161,6 @@ module.exports = async (req, res) => {
     res.status(200).json(await actions[name](req, body));
   } catch (e) {
     const status = e.status || 500; if (!e.status) console.error(e);
-    res.status(status).json({ error: e.status ? e.message : 'server' });
+    res.status(status).json({ error: e.status ? e.message : 'server', ...(e.extra || {}) });
   }
 };

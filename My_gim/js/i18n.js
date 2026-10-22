@@ -534,6 +534,116 @@ const X3 = {
 };
 for (const l in X3) Object.assign(T[l], X3[l]);
 
+// Seguridad, copia automática y conflictos
+const X4 = {
+ "es": {
+  "currentPassword": "Contraseña actual",
+  "needPasswordEmail": "Para cambiar el correo escribe tu contraseña actual.",
+  "errMailConfig": "El envío de correos no está configurado en el servidor. Avisa al administrador.",
+  "errMail": "No se pudo enviar el correo. Inténtalo más tarde o avisa al administrador.",
+  "autosyncTitle": "Copia automática en la nube",
+  "autosyncHint": "Guarda tus entrenamientos en el servidor unos segundos después de cada cambio y al salir de la app. El botón «Guardar entrenamiento del día» sigue disponible.",
+  "on": "Activada",
+  "off": "Desactivada",
+  "dayPendingAuto": "Se guardará solo en unos segundos",
+  "conflictTitle": "Este día cambió en otro dispositivo",
+  "conflictText": "En el servidor hay {server} ejercicio(s) para este día y en este dispositivo {mine}. ¿Cuál quieres conservar?",
+  "conflictServer": "Usar la del servidor",
+  "conflictMine": "Conservar la de este dispositivo"
+ },
+ "gl": {
+  "currentPassword": "Contrasinal actual",
+  "needPasswordEmail": "Para cambiar o correo escribe o teu contrasinal actual.",
+  "errMailConfig": "O envío de correos non está configurado no servidor. Avisa ao administrador.",
+  "errMail": "Non se puido enviar o correo. Téntao máis tarde ou avisa ao administrador.",
+  "autosyncTitle": "Copia automática na nube",
+  "autosyncHint": "Garda os teus adestramentos no servidor uns segundos despois de cada cambio e ao saír da app. O botón «Gardar adestramento do día» segue dispoñible.",
+  "on": "Activada",
+  "off": "Desactivada",
+  "dayPendingAuto": "Gardarase só en poucos segundos",
+  "conflictTitle": "Este día cambiou noutro dispositivo",
+  "conflictText": "No servidor hai {server} exercicio(s) para este día e neste dispositivo {mine}. Cal queres conservar?",
+  "conflictServer": "Usar a do servidor",
+  "conflictMine": "Conservar a deste dispositivo"
+ },
+ "en": {
+  "currentPassword": "Current password",
+  "needPasswordEmail": "To change your email, enter your current password.",
+  "errMailConfig": "Email sending is not set up on the server. Please tell the administrator.",
+  "errMail": "The email couldn't be sent. Try again later or tell the administrator.",
+  "autosyncTitle": "Automatic cloud backup",
+  "autosyncHint": "Saves your workouts to the server a few seconds after each change and when you leave the app. The “Save today’s workout” button is still available.",
+  "on": "On",
+  "off": "Off",
+  "dayPendingAuto": "It will save by itself in a few seconds",
+  "conflictTitle": "This day changed on another device",
+  "conflictText": "The server has {server} exercise(s) for this day and this device has {mine}. Which one do you want to keep?",
+  "conflictServer": "Use the server's version",
+  "conflictMine": "Keep this device's version"
+ },
+ "pt": {
+  "currentPassword": "Palavra-passe atual",
+  "needPasswordEmail": "Para alterar o e-mail, escreve a tua palavra-passe atual.",
+  "errMailConfig": "O envio de e-mails não está configurado no servidor. Avisa o administrador.",
+  "errMail": "Não foi possível enviar o e-mail. Tenta mais tarde ou avisa o administrador.",
+  "autosyncTitle": "Cópia automática na nuvem",
+  "autosyncHint": "Guarda os teus treinos no servidor alguns segundos depois de cada alteração e ao sair da app. O botão «Guardar treino do dia» continua disponível.",
+  "on": "Ativada",
+  "off": "Desativada",
+  "dayPendingAuto": "Vai guardar-se sozinho em alguns segundos",
+  "conflictTitle": "Este dia foi alterado noutro dispositivo",
+  "conflictText": "No servidor há {server} exercício(s) para este dia e neste dispositivo {mine}. Qual queres manter?",
+  "conflictServer": "Usar a do servidor",
+  "conflictMine": "Manter a deste dispositivo"
+ },
+ "it": {
+  "currentPassword": "Password attuale",
+  "needPasswordEmail": "Per cambiare l'e-mail scrivi la tua password attuale.",
+  "errMailConfig": "L'invio delle e-mail non è configurato sul server. Avvisa l'amministratore.",
+  "errMail": "Impossibile inviare l'e-mail. Riprova più tardi o avvisa l'amministratore.",
+  "autosyncTitle": "Backup automatico nel cloud",
+  "autosyncHint": "Salva i tuoi allenamenti sul server pochi secondi dopo ogni modifica e quando esci dall'app. Il pulsante «Salva allenamento del giorno» resta disponibile.",
+  "on": "Attivo",
+  "off": "Disattivato",
+  "dayPendingAuto": "Si salverà da solo tra pochi secondi",
+  "conflictTitle": "Questo giorno è cambiato su un altro dispositivo",
+  "conflictText": "Sul server ci sono {server} esercizio/i per questo giorno e su questo dispositivo {mine}. Quale vuoi tenere?",
+  "conflictServer": "Usa quella del server",
+  "conflictMine": "Tieni quella di questo dispositivo"
+ },
+ "fr": {
+  "currentPassword": "Mot de passe actuel",
+  "needPasswordEmail": "Pour changer l'e-mail, saisissez votre mot de passe actuel.",
+  "errMailConfig": "L'envoi d'e-mails n'est pas configuré sur le serveur. Prévenez l'administrateur.",
+  "errMail": "Impossible d'envoyer l'e-mail. Réessayez plus tard ou prévenez l'administrateur.",
+  "autosyncTitle": "Sauvegarde automatique dans le cloud",
+  "autosyncHint": "Enregistre vos entraînements sur le serveur quelques secondes après chaque modification et quand vous quittez l'app. Le bouton « Enregistrer l'entraînement du jour » reste disponible.",
+  "on": "Activée",
+  "off": "Désactivée",
+  "dayPendingAuto": "Il s'enregistrera tout seul dans quelques secondes",
+  "conflictTitle": "Ce jour a changé sur un autre appareil",
+  "conflictText": "Le serveur contient {server} exercice(s) pour ce jour et cet appareil {mine}. Laquelle garder ?",
+  "conflictServer": "Utiliser celle du serveur",
+  "conflictMine": "Garder celle de cet appareil"
+ },
+ "de": {
+  "currentPassword": "Aktuelles Passwort",
+  "needPasswordEmail": "Um die E-Mail zu ändern, gib dein aktuelles Passwort ein.",
+  "errMailConfig": "Der E-Mail-Versand ist auf dem Server nicht eingerichtet. Bitte den Administrator informieren.",
+  "errMail": "Die E-Mail konnte nicht gesendet werden. Versuche es später erneut oder informiere den Administrator.",
+  "autosyncTitle": "Automatische Cloud-Sicherung",
+  "autosyncHint": "Speichert deine Trainings wenige Sekunden nach jeder Änderung und beim Verlassen der App auf dem Server. Die Schaltfläche „Tagestraining speichern“ bleibt verfügbar.",
+  "on": "An",
+  "off": "Aus",
+  "dayPendingAuto": "Wird in wenigen Sekunden automatisch gespeichert",
+  "conflictTitle": "Dieser Tag wurde auf einem anderen Gerät geändert",
+  "conflictText": "Auf dem Server gibt es {server} Übung(en) für diesen Tag, auf diesem Gerät {mine}. Welche möchtest du behalten?",
+  "conflictServer": "Server-Version verwenden",
+  "conflictMine": "Version dieses Geräts behalten"
+ }
+};
+for (const l in X4) Object.assign(T[l], X4[l]);
+
 let current = 'es';
 export function setLang(l) { current = T[l] ? l : 'es'; document.documentElement.lang = current; }
 export function getLang() { return current; }

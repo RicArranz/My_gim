@@ -22,7 +22,7 @@ async function api(action, body, auth = true) {
     new Promise((_, ko) => { timer = setTimeout(() => { ctl.abort(); ko(new TypeError('timeout')); }, ms); })
   ]).finally(() => clearTimeout(timer));
   let j = {}; try { j = await r.json(); } catch { /* respuesta no JSON */ }
-  if (!r.ok) throw Object.assign(new Error(j.error || 'server'), { status: r.status });
+  if (!r.ok) throw Object.assign(new Error(j.error || 'server'), { status: r.status, data: j });
   return j;
 }
 const startSession = r => { localStorage.setItem('mg_token', r.token); W('mg_user_cache', r.user); };
@@ -113,6 +113,7 @@ export async function updateProfile(user, patch) {
   // patch: name, surname, email, avatar, prefs
   if (isRemote) { const { user: u } = await api('update-profile', patch); W('mg_user_cache', u); Object.assign(user, u); return; }
   const users = J('mg_local_users', {}); const u = users[user.id];
+  if (patch.email && patch.email.trim().toLowerCase() !== u.email && u.hash !== await sha(patch.currentPassword || '')) throw new Error('creds');   // cambiar el correo exige la contraseña actual
   u.user_metadata = { ...u.user_metadata, name: patch.name ?? user.name, surname: patch.surname ?? user.surname, prefs: patch.prefs ?? user.prefs };
   if (patch.email) u.email = patch.email.trim().toLowerCase();
   if ('avatar' in patch) u.avatar = patch.avatar;
@@ -120,9 +121,15 @@ export async function updateProfile(user, patch) {
 }
 
 /* ---------- Datos ---------- */
+// Versión (hash corto) de cada día tal como la tiene el servidor. Se envía al guardar para detectar cambios hechos desde otro dispositivo.
+export const revs = {};
+const saveRevs = userId => { try { W('mg_revs_' + userId, revs); } catch { /* cuota */ } };
+export function loadRevs(userId) { for (const k in revs) delete revs[k]; Object.assign(revs, J('mg_revs_' + userId, {})); }
+
 export async function fetchAll(userId) {
   if (!isRemote) return J('mg_local_data_' + userId, []);
-  const { days } = await api('days'); const rows = [];
+  const { days, revs: r } = await api('days'); const rows = [];
+  for (const k in revs) delete revs[k]; Object.assign(revs, r || {}); saveRevs(userId);
   for (const day of Object.keys(days).sort()) days[day].forEach((i, n) => rows.push({ id: i.id, day, position: n, name: i.name, sets: i.sets, note: i.note || '' }));
   return rows;
 }
@@ -134,11 +141,16 @@ export async function importDays(userId, days) {
   W('mg_local_data_' + userId, all); return { ok: true, days: keys.length, exercises };
 }
 export async function resetAll(userId) {
-  if (isRemote) { await api('reset-progress'); return; }
+  if (isRemote) { await api('reset-progress'); for (const k in revs) delete revs[k]; saveRevs(userId); return; }
   localStorage.removeItem('mg_local_data_' + userId);
 }
-export async function saveDay(userId, day, items) {
-  if (isRemote) { await api('save-day', { day, items: items.map(i => ({ id: i.id, name: i.name, sets: i.sets, note: i.note || '' })) }); return; }
+// Si el día cambió en otro dispositivo lanza Error('conflict') con {status:409, data:{items, rev}}; force:true sobrescribe.
+export async function saveDay(userId, day, items, { force = false } = {}) {
+  if (isRemote) {
+    const r = await api('save-day', { day, items: items.map(i => ({ id: i.id, name: i.name, sets: i.sets, note: i.note || '' })), base: revs[day] || '', force });
+    if (r.rev) revs[day] = r.rev; else delete revs[day];
+    saveRevs(userId); return;
+  }
   const all = J('mg_local_data_' + userId, []).filter(r => r.day !== day);
   items.forEach((i, n) => all.push({ id: i.id, day, position: n, name: i.name, sets: i.sets, note: i.note || '' }));
   W('mg_local_data_' + userId, all);
