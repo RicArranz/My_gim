@@ -619,7 +619,9 @@ function progRecords(st) {
 }
 
 /* ---------- Subir archivos: importar / exportar ---------- */
-const readText = f => (f.text ? f.text() : new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsText(f); }));
+const readBuf = f => (f.arrayBuffer ? f.arrayBuffer() : new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsArrayBuffer(f); }));
+// UTF-8; si el archivo no lo es (p. ej. CSV guardado por Excel en Windows-1252) se lee como Windows-1252 para no romper tildes ni «Nº».
+async function readText(f) { const buf = await readBuf(f); try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { return new TextDecoder('windows-1252').decode(buf); } }
 async function saveBlob(parts, name, type) {
   const blob = new Blob(parts, { type });
   const file = typeof File === 'function' ? new File([blob], name, { type }) : null;
@@ -634,7 +636,7 @@ const importErr = e => ({ empty: t('importEmpty'), format: t('importFormat'), to
 function viewFiles() {
   const days = io.itemsToDays(allItems()), keys = Object.keys(days);
   $('#view').innerHTML = `<div class="stack">${loadBanner()}
-    <div class="card stack"><h2>${t('importTitle')}</h2><p class="muted" style="margin:0">${t('importText')}</p>
+    <div class="card stack"><h2>${t('importTitle')}</h2><p class="muted" style="margin:0">${t('importText')}</p><p class="muted" style="margin:0;font-size:.82rem">${t('importHint')}</p>
       <label class="btn" style="cursor:pointer">${t('chooseFile')}<input type="file" id="imp" hidden></label>
       <button class="btn link" id="tpl">${t('template')}</button><div class="msg hidden" id="im"></div></div>
     <div class="card stack"><h2>${t('exportTitle')}</h2>
@@ -649,10 +651,11 @@ function viewFiles() {
   $('#imp').onchange = async e => {
     const f = e.target.files[0]; e.target.value = ''; if (!f) return;
     let r; try { r = io.parseImport(await readText(f), f.name); } catch (err) { return say(im, importErr(err), false); }
-    const clash = Object.keys(r.days).filter(d => dayItems(d).length).length, sk = r.skipped.exercises + r.skipped.sets + r.skipped.dates, s = r.stats;
+    const clash = Object.keys(r.days).filter(d => dayItems(d).length).length, sk = r.skipped.exercises + r.skipped.sets + r.skipped.dates, blank = r.skipped.blank || 0, s = r.stats;
+    const ren = r.renames.slice(0, 3).map(([x, y]) => `«${esc(x)}» → «${esc(y)}»`).join(', ') + (r.renames.length > 3 ? '…' : '');
     const o = modal(`<h2>${t('importTitle')}</h2><p style="margin:0">${esc(f.name)}</p>
       <p style="margin:0"><b>${t('importPreview', { days: s.days, ex: s.exercises, sets: s.sets, from: fmtDate(s.from), to: fmtDate(s.to) })}</b></p>
-      ${clash ? `<div class="msg">${t('importReplace', { n: clash })}</div>` : ''}${sk ? `<div class="msg">${t('importSkipped', { n: sk })}</div>` : ''}
+      ${clash ? `<div class="msg">${t('importReplace', { n: clash })}</div>` : ''}${sk ? `<div class="msg">${t('importSkipped', { n: sk })}</div>` : ''}${blank ? `<div class="msg">${t('importBlank', { n: blank })}</div>` : ''}${r.renames.length ? `<div class="msg">${t('importRenamed', { ex: ren })}</div>` : ''}
       <div class="actions"><button class="btn ghost" data-a="no">${t('cancel')}</button><button class="btn" data-a="ok">${t('importConfirm')}</button></div>`);
     o.onclick = async ev => {
       const act = ev.target.dataset.a; if (!act) return;

@@ -3,5 +3,5 @@
   "private": true,
   "version": "1.0.0",
   "description": "PWA para registrar entrenamientos de gimnasio",
-  "engines": { "node": "24.x" }
+  "engines": { "node": "20.x" }
 }

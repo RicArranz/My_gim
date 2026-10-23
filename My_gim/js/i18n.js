@@ -644,6 +644,46 @@ const X4 = {
 };
 for (const l in X4) Object.assign(T[l], X4[l]);
 
+// Formato de importación agrupado
+const X5 = {
+ "es": {
+  "importHint": "Columnas: Fecha, Ejercicio, Nº Series, Nº Repeticiones, Peso Total / Carga (una fila por grupo de series iguales). El peso puede ser «16 kg», «Peso corporal» o «Barra + 10 kg» (la barra cuenta 20 kg).",
+  "importBlank": "{n} filas sin series ni repeticiones («No especificado») se omitieron.",
+  "importRenamed": "Se unificaron nombres para que el progreso se agrupe bien: {ex}."
+ },
+ "gl": {
+  "importHint": "Columnas: Fecha, Ejercicio, Nº Series, Nº Repeticiones, Peso Total / Carga (unha fila por grupo de series iguais). O peso pode ser «16 kg», «Peso corporal» ou «Barra + 10 kg» (a barra conta 20 kg).",
+  "importBlank": "{n} filas sen series nin repeticións («No especificado») omitíronse.",
+  "importRenamed": "Unificáronse nomes para que o progreso se agrupe ben: {ex}."
+ },
+ "en": {
+  "importHint": "Columns: Fecha, Ejercicio, Nº Series, Nº Repeticiones, Peso Total / Carga (one row per group of identical sets). The weight can be “16 kg”, “Peso corporal” (bodyweight) or “Barra + 10 kg” (the bar counts as 20 kg).",
+  "importBlank": "{n} rows with no sets or reps (“No especificado”) were skipped.",
+  "importRenamed": "Names were unified so progress groups correctly: {ex}."
+ },
+ "pt": {
+  "importHint": "Colunas: Fecha, Ejercicio, Nº Series, Nº Repeticiones, Peso Total / Carga (uma linha por grupo de séries iguais). O peso pode ser «16 kg», «Peso corporal» ou «Barra + 10 kg» (a barra conta 20 kg).",
+  "importBlank": "{n} linhas sem séries nem repetições («No especificado») foram omitidas.",
+  "importRenamed": "Os nomes foram unificados para o progresso se agrupar bem: {ex}."
+ },
+ "it": {
+  "importHint": "Colonne: Fecha, Ejercicio, Nº Series, Nº Repeticiones, Peso Total / Carga (una riga per gruppo di serie uguali). Il peso può essere «16 kg», «Peso corporal» (corpo libero) o «Barra + 10 kg» (il bilanciere conta 20 kg).",
+  "importBlank": "{n} righe senza serie né ripetizioni («No especificado») sono state omesse.",
+  "importRenamed": "I nomi sono stati unificati perché i progressi si raggruppino bene: {ex}."
+ },
+ "fr": {
+  "importHint": "Colonnes : Fecha, Ejercicio, Nº Series, Nº Repeticiones, Peso Total / Carga (une ligne par groupe de séries identiques). Le poids peut être « 16 kg », « Peso corporal » (poids du corps) ou « Barra + 10 kg » (la barre compte 20 kg).",
+  "importBlank": "{n} lignes sans séries ni répétitions (« No especificado ») ont été ignorées.",
+  "importRenamed": "Les noms ont été unifiés pour regrouper correctement la progression : {ex}."
+ },
+ "de": {
+  "importHint": "Spalten: Fecha, Ejercicio, Nº Series, Nº Repeticiones, Peso Total / Carga (eine Zeile pro Gruppe gleicher Sätze). Das Gewicht kann „16 kg“, „Peso corporal“ (Körpergewicht) oder „Barra + 10 kg“ sein (die Stange zählt 20 kg).",
+  "importBlank": "{n} Zeilen ohne Sätze und Wiederholungen („No especificado“) wurden übersprungen.",
+  "importRenamed": "Namen wurden vereinheitlicht, damit der Fortschritt richtig gruppiert wird: {ex}."
+ }
+};
+for (const l in X5) Object.assign(T[l], X5[l]);
+
 let current = 'es';
 export function setLang(l) { current = T[l] ? l : 'es'; document.documentElement.lang = current; }
 export function getLang() { return current; }
